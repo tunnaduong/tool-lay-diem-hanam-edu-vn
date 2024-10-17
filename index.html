@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Tool lấy điểm hanam.edu.vn</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <!-- Bootstrap CSS v5.2.1 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <meta property="og:url" content="https://diemthi.tunnaduong.com" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tool lấy điểm hanam.edu.vn" />
+    <meta
+      property="og:description"
+      content="Công cụ lấy điểm thi nhanh, tiện lợi, chính xác dành cho học sinh Hà Nam"
+    />
+    <meta property="og:image" content="image.jpg" />
+    <style>
+      @media (min-width: 1200px) {
+        .container {
+          max-width: 800px;
+        }
+      }
+
+      footer {
+        margin: 40px 0;
+        color: var(--black);
+      }
+      .footer--copyright,
+      .footer--fun {
+        margin: 0;
+      }
+      .footer--copyright {
+        font-size: 17px;
+        line-height: 22px;
+      }
+      #footer--mobile {
+        display: none;
+        font-weight: 500;
+      }
+      .footer--fun {
+        font-size: 14px;
+        margin-top: 10px;
+        padding-bottom: 40px;
+        color: #898989;
+      }
+
+      @media only screen and (max-width: 960px) {
+        #footer--desktop {
+          display: none;
+        }
+        #footer--mobile {
+          display: block;
+        }
+        .footer--fun {
+          font-size: 8px;
+        }
+      }
+    </style>
+    <link rel="icon" type="image/png" href="logo.png" />
+  </head>
+
+  <body>
+    <main class="mt-4 container mx-auto">
+      <div>
+        <iframe
+          src="https://www.facebook.com/plugins/like.php?href=https%3A%2F%2Fdiemthi.tunnaduong.com&width=400&layout&action&size&share=true&height=35&appId=1087511252159238"
+          width="400"
+          height="40"
+          style="border: none; overflow: hidden"
+          scrolling="no"
+          frameborder="0"
+          allowfullscreen="true"
+          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+        ></iframe>
+      </div>
+      <h1>Tool lấy điểm hanam.edu.vn</h1>
+      <div>
+        <div class="mb-3">
+          <label for="student_id">Mã học sinh</label>
+          <input
+            type="text"
+            class="form-control"
+            id="student_id"
+            placeholder="VD: HEAD1259168"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="year">Năm học</label>
+          <select id="year" class="form-select">
+            <option value="2025">2025 - 2026</option>
+            <option value="2024">2024 - 2025</option>
+            <option value="2023">2023 - 2024</option>
+            <option value="2022">2022 - 2023</option>
+            <option value="2021">2021 - 2022</option>
+            <option value="2020">2020 - 2021</option>
+            <option value="2019">2019 - 2020</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="semester">Học kỳ</label>
+          <select id="semester" class="form-select">
+            <option value="1">Học kỳ 1</option>
+            <option value="2">Học kỳ 2</option>
+            <option value="3">Cả năm</option>
+          </select>
+        </div>
+        <p class="text-danger" id="error_message"></p>
+        <button id="getScore" class="btn btn-primary">Lấy điểm</button>
+      </div>
+      <h3 class="mt-5">Hồ sơ học sinh</h3>
+      <table id="info_table" class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th>Họ và tên</th>
+            <th>Ngày sinh</th>
+            <th>Trường</th>
+            <th>Lớp</th>
+            <th>Giới tính</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <h3 class="mt-5">Kết quả học tập</h3>
+      <table id="grade_table" class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th rowspan="2">STT</th>
+            <th rowspan="2">Môn học</th>
+            <th class="text-center" colspan="3">Điểm thành phần</th>
+            <th rowspan="2">Điểm TB</th>
+          </tr>
+          <tr>
+            <th>Điểm thường xuyên</th>
+            <th>Điểm GK</th>
+            <th>Điểm CK</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </main>
+    <footer class="text-center">
+      <p class="footer--copyright">
+        <span id="footer--mobile"
+          >© 2022-<span id="year_mobile"></span> Duong Tung Anh<br /><span
+            style="color: gray; font-weight: 300; font-size: 15px"
+            >All rights reserved</span
+          ></span
+        >
+        <span id="footer--desktop"
+          >© 2022-<span id="year_desktop"></span> Duong Tung Anh. All rights
+          reserved.</span
+        >
+      </p>
+      <p class="footer--fun">
+        Được làm bằng 💕 <i>tình yêu</i>, 🔥 <i>nhiệt huyết</i>, ⌨️
+        <i>bàn phím</i> và rất nhiều ☕️ <i>cà phê</i>.
+      </p>
+    </footer>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+      integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"
+      integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
