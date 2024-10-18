@@ -23,3 +23,13 @@ export const searchStudent = async (formData) => {
     console.log("err: ", e);
   }
 };
+
+export const getCommit = async () => {
+  try {
+    const res = await fetch(
+      "https://api.github.com/repos/tunnaduong/tool-lay-diem-hanam-edu-vn/commits/main?client_id=&client_secret="
+    );
+    const data = await res.json();
+    return data.commit.author.date;
+  } catch (error) {}
+};

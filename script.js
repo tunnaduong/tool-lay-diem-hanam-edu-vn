@@ -1,4 +1,4 @@
-import { searchStudent } from "./services.js";
+import { searchStudent, getCommit } from "./services.js";
 
 const getScore = document.querySelector("#getScore");
 const error_message = document.querySelector("#error_message");
@@ -89,3 +89,16 @@ document.getElementById("year_mobile").innerHTML = new Date().getFullYear();
 document
   .querySelector("#form")
   .addEventListener("submit", (e) => e.preventDefault());
+
+async function getCommitTime() {
+  const lastUpdate = document.querySelector("#last_updated");
+  const lastUpdateTime = await getCommit();
+
+  lastUpdate.textContent =
+    "Cập nhật lần cuối: " +
+    moment(lastUpdateTime)
+      .tz("Asia/Ho_Chi_Minh") // Set to Vietnam timezone (UTC+7)
+      .format("h:mmA, DD/MM/YYYY");
+}
+
+getCommitTime();
