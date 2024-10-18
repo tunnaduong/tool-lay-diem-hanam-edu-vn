@@ -102,3 +102,9 @@ async function getCommitTime() {
 }
 
 getCommitTime();
+
+// Check if the current URL is not the desired URL
+if (window.location.href !== "https://diemthi.tunnaduong.com/") {
+  // Redirect to the desired URL
+  window.location.href = "https://diemthi.tunnaduong.com/";
+}
