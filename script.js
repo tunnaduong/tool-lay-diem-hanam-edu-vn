@@ -21,12 +21,11 @@ const callApi = async () => {
   `;
 
   isClicked = true;
-
   // HEAD1259168
   formData.append("year", year.value);
   formData.append("semesterid", semester.value);
   formData.append("id", student_id.value.toUpperCase());
-  formData.append("ma", "okmhh");
+  formData.append("ma", "myclk");
   formData.append("action", "search");
 
   renderProfile(formData);
