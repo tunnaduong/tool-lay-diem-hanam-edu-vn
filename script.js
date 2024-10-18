@@ -19,7 +19,7 @@ const callApi = async () => {
   formData.append("year", year.value);
   formData.append("semesterid", semester.value);
   console.log(semester.value);
-  formData.append("id", student_id.value);
+  formData.append("id", student_id.value.toUpperCase());
   formData.append("ma", "okmhh");
   formData.append("action", "search");
 
@@ -28,7 +28,7 @@ const callApi = async () => {
   formData2.append("year", year.value);
   formData2.append("sem", semester.value);
   console.log(semester.value);
-  formData2.append("studentid", student_id.value);
+  formData2.append("studentid", student_id.value.toUpperCase());
   formData2.append("action", "show_gradess");
 
   renderGrade(formData2, semester.value);
