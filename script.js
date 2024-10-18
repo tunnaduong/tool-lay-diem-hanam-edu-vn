@@ -5,6 +5,7 @@ const error_message = document.querySelector("#error_message");
 const student_id = document.querySelector("#student_id");
 const year = document.querySelector("#year");
 const semester = document.querySelector("#semester");
+const btnLoad = document.querySelector("#btnLoad");
 
 var formData = new FormData();
 var formData2 = new FormData();
@@ -13,12 +14,17 @@ var isClicked = false;
 const callApi = async () => {
   error_message.textContent = "";
 
+  btnLoad.innerHTML = `
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  `;
+
   isClicked = true;
 
   // HEAD1259168
   formData.append("year", year.value);
   formData.append("semesterid", semester.value);
-  console.log(semester.value);
   formData.append("id", student_id.value.toUpperCase());
   formData.append("ma", "okmhh");
   formData.append("action", "search");
@@ -27,7 +33,6 @@ const callApi = async () => {
 
   formData2.append("year", year.value);
   formData2.append("sem", semester.value);
-  console.log(semester.value);
   formData2.append("studentid", student_id.value.toUpperCase());
   formData2.append("action", "show_gradess");
 
@@ -70,6 +75,12 @@ const renderGrade = async (formData, semester = 1) => {
   `
       )
       .join("") ?? "";
+  btnLoad.innerHTML = `
+      <button id="getScore" class="btn btn-primary">Lấy điểm</button>
+      `;
+  document
+    .getElementById("getScore")
+    .addEventListener("click", () => callApi());
 };
 
 getScore.addEventListener("click", () => callApi());
@@ -103,8 +114,19 @@ async function getCommitTime() {
 
 getCommitTime();
 
-// Check if the current URL is not the desired URL
-if (window.location.href !== "https://diemthi.tunnaduong.com/") {
-  // Redirect to the desired URL
-  window.location.href = "https://diemthi.tunnaduong.com/";
+// Function to check the current URL and redirect if necessary
+function checkAndRedirect() {
+  const desiredUrl = "https://diemthi.tunnaduong.com/";
+  const currentUrl = window.location.href;
+  const isLocalhost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+
+  // Check if the current URL is not the desired URL and not on localhost
+  if (currentUrl !== desiredUrl && !isLocalhost) {
+    // Redirect to the desired URL
+    window.location.href = desiredUrl;
+  }
 }
+
+checkAndRedirect();
