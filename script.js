@@ -98,7 +98,7 @@ async function getCommitTime() {
     "Cập nhật lần cuối: " +
     moment(lastUpdateTime)
       .tz("Asia/Ho_Chi_Minh") // Set to Vietnam timezone (UTC+7)
-      .format("h:mmA, DD/MM/YYYY");
+      .format("h:mm A, DD/MM/YYYY");
 }
 
 getCommitTime();
