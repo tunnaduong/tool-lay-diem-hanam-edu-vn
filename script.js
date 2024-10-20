@@ -25,7 +25,7 @@ const callApi = async () => {
   formData.append("year", year.value);
   formData.append("semesterid", semester.value);
   formData.append("id", student_id.value.toUpperCase());
-  formData.append("ma", "kdonf");
+  formData.append("ma", "eolau");
   formData.append("action", "search");
 
   renderProfile(formData);
