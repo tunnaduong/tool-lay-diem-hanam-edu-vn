@@ -45,8 +45,19 @@ const callApi = async () => {
 
   if (captcha_code.value) {
     insertCaptcha(captcha_code.value);
+    document.querySelector("#captcha").className = "mb-3 d-none";
+    captcha_code.value = "";
   }
 };
+
+const reloadCaptcha = () => {
+  document.querySelector("#capcha").src =
+    "https://cors-anywhere-test.fly.dev/https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
+};
+
+document
+  .querySelector("#refresh-captcha")
+  .addEventListener("click", () => reloadCaptcha());
 
 const renderProfile = async (formData) => {
   const tbody = document.querySelector("#info_table tbody");
