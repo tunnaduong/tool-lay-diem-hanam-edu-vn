@@ -1,4 +1,9 @@
-import { searchStudent, getCommit } from "./services.js";
+import {
+  searchStudent,
+  getCommit,
+  insertCaptcha,
+  getCaptcha,
+} from "./services.js";
 
 const getScore = document.querySelector("#getScore");
 const error_message = document.querySelector("#error_message");
@@ -6,6 +11,7 @@ const student_id = document.querySelector("#student_id");
 const year = document.querySelector("#year");
 const semester = document.querySelector("#semester");
 const btnLoad = document.querySelector("#btnLoad");
+const captcha_code = document.querySelector("#captcha_code");
 
 var formData = new FormData();
 var formData2 = new FormData();
@@ -25,7 +31,7 @@ const callApi = async () => {
   formData.append("year", year.value);
   formData.append("semesterid", semester.value);
   formData.append("id", student_id.value.toUpperCase());
-  formData.append("ma", "rufit");
+  formData.append("ma", captcha_code?.value || (await getCaptcha()));
   formData.append("action", "search");
 
   renderProfile(formData);
@@ -36,6 +42,10 @@ const callApi = async () => {
   formData2.append("action", "show_gradess");
 
   renderGrade(formData2, semester.value);
+
+  if (captcha_code.value) {
+    insertCaptcha(captcha_code.value);
+  }
 };
 
 const renderProfile = async (formData) => {
