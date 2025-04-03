@@ -1,9 +1,4 @@
-import {
-  searchStudent,
-  getCommit,
-  insertCaptcha,
-  getCaptcha,
-} from "./services.js";
+import { searchStudent, insertCaptcha, getCaptcha } from "./services.js";
 
 const getScore = document.querySelector("#getScore");
 const error_message = document.querySelector("#error_message");
@@ -17,7 +12,7 @@ var formData = new FormData();
 var formData2 = new FormData();
 var isClicked = false;
 
-const callApi = async () => {
+const callApi = async (type = "grade") => {
   error_message.textContent = "";
 
   btnLoad.innerHTML = `
@@ -28,20 +23,22 @@ const callApi = async () => {
 
   isClicked = true;
   // HEAD1259168
-  formData.append("year", year.value);
-  formData.append("semesterid", semester.value);
-  formData.append("id", student_id.value.toUpperCase());
-  formData.append("ma", captcha_code?.value || (await getCaptcha()));
-  formData.append("action", "search");
+  if (type == "info") {
+    formData.append("year", year.value);
+    formData.append("semesterid", semester.value);
+    formData.append("id", student_id.value.toUpperCase());
+    formData.append("ma", captcha_code?.value || (await getCaptcha()));
+    formData.append("action", "search");
 
-  renderProfile(formData);
+    renderProfile(formData);
+  } else {
+    formData2.append("year", year.value);
+    formData2.append("sem", semester.value);
+    formData2.append("studentid", student_id.value.toUpperCase());
+    formData2.append("action", "show_gradess");
 
-  formData2.append("year", year.value);
-  formData2.append("sem", semester.value);
-  formData2.append("studentid", student_id.value.toUpperCase());
-  formData2.append("action", "show_gradess");
-
-  renderGrade(formData2, semester.value);
+    renderGrade(formData2, semester.value);
+  }
 
   if (captcha_code.value) {
     insertCaptcha(captcha_code.value);
@@ -52,7 +49,7 @@ const callApi = async () => {
 
 const reloadCaptcha = () => {
   document.querySelector("#capcha").src =
-    "https://cors-anywhere-test.fly.dev/https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
+    "https://cors.21112003.xyz/https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
 };
 
 document
@@ -75,6 +72,20 @@ const renderProfile = async (formData) => {
     </tr>
   `
     ) ?? "";
+
+  btnLoad.innerHTML = `
+      <button id="getScore" class="btn btn-primary">Lấy điểm</button>
+      <button id="getStudentInfo" class="btn btn-secondary">
+            Lấy thông tin học sinh
+          </button>
+      `;
+  document.getElementById("studentInfo").scrollIntoView();
+  document
+    .querySelector("#getStudentInfo")
+    .addEventListener("click", () => callApi("info"));
+  document
+    .getElementById("getScore")
+    .addEventListener("click", () => callApi());
 };
 
 const renderGrade = async (formData, semester = 1) => {
@@ -97,13 +108,23 @@ const renderGrade = async (formData, semester = 1) => {
       .join("") ?? "";
   btnLoad.innerHTML = `
       <button id="getScore" class="btn btn-primary">Lấy điểm</button>
+      <button id="getStudentInfo" class="btn btn-secondary">
+            Lấy thông tin học sinh
+          </button>
       `;
+  document.getElementById("studentGrade").scrollIntoView();
   document
     .getElementById("getScore")
     .addEventListener("click", () => callApi());
+  document
+    .querySelector("#getStudentInfo")
+    .addEventListener("click", () => callApi("info"));
 };
 
 getScore.addEventListener("click", () => callApi());
+document
+  .querySelector("#getStudentInfo")
+  .addEventListener("click", () => callApi("info"));
 
 semester.addEventListener("change", (e) => {
   if (!student_id.value || !isClicked) {
@@ -120,33 +141,3 @@ document.getElementById("year_mobile").innerHTML = new Date().getFullYear();
 document
   .querySelector("#form")
   .addEventListener("submit", (e) => e.preventDefault());
-
-async function getCommitTime() {
-  const lastUpdate = document.querySelector("#last_updated");
-  const lastUpdateTime = await getCommit();
-
-  lastUpdate.textContent =
-    "Cập nhật lần cuối: " +
-    moment(lastUpdateTime)
-      .tz("Asia/Ho_Chi_Minh") // Set to Vietnam timezone (UTC+7)
-      .format("h:mm A, DD/MM/YYYY");
-}
-
-getCommitTime();
-
-// Function to check the current URL and redirect if necessary
-function checkAndRedirect() {
-  const desiredUrl = "https://diemthi.tunnaduong.com/";
-  const currentUrl = window.location.href;
-  const isLocalhost =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
-
-  // Check if the current URL is not the desired URL and not on localhost
-  if (currentUrl !== desiredUrl && !isLocalhost) {
-    // Redirect to the desired URL
-    window.location.href = desiredUrl;
-  }
-}
-
-checkAndRedirect();

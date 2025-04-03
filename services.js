@@ -6,7 +6,7 @@ const captcha_code = document.querySelector("#captcha_code");
 export const searchStudent = async (formData) => {
   try {
     const res = await fetch(
-      "https://cors-anywhere-test.fly.dev/https://hanam.edu.vn/hanam/_xuly/search_student_eos/searching",
+      "https://cors.21112003.xyz/https://hanam.edu.vn/hanam/_xuly/search_student_eos/searching",
       {
         method: "POST",
         body: formData,
@@ -21,31 +21,35 @@ export const searchStudent = async (formData) => {
       student_id.focus();
     }
 
+    if (data?.data?.length == 0) {
+      error_message.textContent = "Không tìm thấy dữ liệu học sinh!";
+      student_id.focus();
+      return;
+    }
+
     if (
       Array.isArray(data.errors) &&
       data.errors[0] == "Mã capcha không đúng!"
     ) {
       document.querySelector("#capcha").src =
-        "https://cors-anywhere-test.fly.dev/https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
+        "https://cors.21112003.xyz/https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
       captcha.className = "mb-3";
       captcha_code.focus();
+      return;
+    }
+
+    if (formData.get("action") == "show_gradess") {
+      document.getElementById("studentGrade").style.display = "block";
+    } else {
+      document.getElementById("studentInfo").style.display = "block";
     }
 
     return data;
   } catch (e) {
-    error_message.textContent = "Không tìm thấy dữ liệu học sinh!";
+    error_message.textContent =
+      "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho mình!";
     console.log("err: ", e);
   }
-};
-
-export const getCommit = async () => {
-  try {
-    const res = await fetch(
-      "https://api.github.com/repos/tunnaduong/tool-lay-diem-hanam-edu-vn/commits/main?client_id=&client_secret="
-    );
-    const data = await res.json();
-    return data.commit.author.date;
-  } catch (error) {}
 };
 
 export const insertCaptcha = (captcha) => {
