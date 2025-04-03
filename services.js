@@ -47,7 +47,7 @@ export const searchStudent = async (formData) => {
     return data;
   } catch (e) {
     error_message.textContent =
-      "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho mình!";
+      "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho chúng tôi.";
     console.log("err: ", e);
   }
 };
