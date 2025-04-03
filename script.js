@@ -50,22 +50,8 @@ const callApi = async (type = "grade") => {
 const reloadCaptcha = () => {
   const captchaImage = document.querySelector("#capcha");
   
-  // Show loading GIF
-  captchaImage.style.display = "block";
-  
   // Set the new captcha source
   captchaImage.src = "https://cors.21112003.xyz/https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
-
-  // Hide loading GIF and show captcha image once it loads
-  captchaImage.onload = () => {
-      captchaImage.style.display = "block"; // Show captcha image
-  };
-
-  // Optionally handle error case
-  captchaImage.onerror = () => {
-      captchaImage.style.display = "none"; // Hide loading GIF if there's an error
-      alert("Failed to load captcha. Please try again.");
-  };
 };
 
 document
