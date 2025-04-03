@@ -50,8 +50,20 @@ const callApi = async (type = "grade") => {
 const reloadCaptcha = () => {
   const captchaImage = document.querySelector("#capcha");
   
-  // Set the new captcha source
-  captchaImage.src = "https://cors.21112003.xyz/https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
+  // Show the loading gif
+  captchaImage.src = "./loading.gif";
+
+  // Create a new image to preload the captcha
+  const newCaptcha = new Image();
+  const captchaUrl = "https://cors.21112003.xyz/https://hanam.edu.vn/get_captcha.php?keycode=_search_eos&_= " + Date.now();
+
+  newCaptcha.onload = () => {
+    // When it's loaded, swap it in
+    captchaImage.src = newCaptcha.src;
+  };
+
+  // Start loading the new captcha
+  newCaptcha.src = captchaUrl;
 };
 
 document
