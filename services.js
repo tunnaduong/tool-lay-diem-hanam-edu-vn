@@ -3,10 +3,13 @@ const student_id = document.querySelector("#student_id");
 const captcha = document.querySelector("#captcha");
 const captcha_code = document.querySelector("#captcha_code");
 
+const CORS_API_SERVER_URL = "https://hanam-edu.fatties.workers.dev/?";
+const CAPTCHA_API_SERVER_URL = "https://tunnaduong.com/test_api/captcha.php";
+
 export const searchStudent = async (formData) => {
   try {
     const res = await fetch(
-      "https://cors.21112003.xyz/https://hanam.edu.vn/hanam/_xuly/search_student_eos/searching",
+      CORS_API_SERVER_URL + "https://hanam.edu.vn/hanam/_xuly/search_student_eos/searching",
       {
         method: "POST",
         body: formData,
@@ -32,7 +35,7 @@ export const searchStudent = async (formData) => {
       data.errors[0] == "Mã capcha không đúng!"
     ) {
       document.querySelector("#capcha").src =
-        "https://cors.21112003.xyz/https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
+        CORS_API_SERVER_URL + "https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
       captcha.className = "mb-3";
       captcha_code.focus();
       return;
@@ -53,7 +56,7 @@ export const searchStudent = async (formData) => {
 };
 
 export const insertCaptcha = (captcha) => {
-  fetch("https://tunnaduong.com/test_api/captcha.php", {
+  fetch(CAPTCHA_API_SERVER_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -69,7 +72,7 @@ export const insertCaptcha = (captcha) => {
 
 export const getCaptcha = async () => {
   try {
-    const res = await fetch("https://tunnaduong.com/test_api/captcha.php");
+    const res = await fetch(CAPTCHA_API_SERVER_URL);
     const data = await res.json();
     return data.content;
   } catch (error) {}
