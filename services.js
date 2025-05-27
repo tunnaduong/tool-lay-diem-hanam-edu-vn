@@ -15,7 +15,12 @@ export const searchStudent = async (formData) => {
         body: formData,
       }
     );
-    const data = await res.json();
+    
+    // Remove leading blank lines
+    const rawText = await res.text();
+    const cleanedText = rawText.replace(/^\s*\n/gm, '').trim();
+    const data = JSON.parse(cleanedText);
+
     console.log(formData.get("action"), data);
     console.log("ma:", formData.get("ma"));
 
@@ -47,11 +52,7 @@ export const searchStudent = async (formData) => {
       document.getElementById("studentInfo").style.display = "block";
     }
 
-    // Remove leading blank lines
-    const cleaned = data.replace(/^\s*\n/gm, '').trim();
-    const data_cleaned = JSON.parse(cleaned);
-
-    return data_cleaned;
+    return data;
   } catch (e) {
     error_message.textContent =
       "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho chúng tôi.";
