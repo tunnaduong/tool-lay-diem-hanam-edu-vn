@@ -9,16 +9,27 @@ const CAPTCHA_API_SERVER_URL = "https://tunnaduong.com/test_api/captcha.php";
 export const searchStudent = async (formData) => {
   try {
     const res = await fetch(
-      CORS_API_SERVER_URL + "https://hanam.edu.vn/hanam/_xuly/search_student_eos/searching",
+      CORS_API_SERVER_URL +
+        "https://hanam.edu.vn/hanam/_xuly/search_student_eos/searching",
       {
         method: "POST",
         body: formData,
       }
     );
-    
-    // Remove leading blank lines
+
     const rawText = await res.text();
-    const cleanedText = rawText.replace(/^\s*\n/gm, '').trim();
+    const cleanedText = rawText.replace(/^\s*\n/gm, "").trim();
+
+    console.log("cleanedText:", cleanedText);
+
+    // 🛑 Nếu response là HTML hoặc chuỗi exception thì ném lỗi ngay
+    if (
+      cleanedText.startsWith("<!DOCTYPE html>") ||
+      cleanedText.toLowerCase().startsWith("exception")
+    ) {
+      throw new Error("Server returned invalid content (HTML or Exception)");
+    }
+
     const data = JSON.parse(cleanedText);
 
     console.log(formData.get("action"), data);
@@ -40,7 +51,8 @@ export const searchStudent = async (formData) => {
       data.errors[0] == "Mã capcha không đúng!"
     ) {
       document.querySelector("#capcha").src =
-        CORS_API_SERVER_URL + "https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
+        CORS_API_SERVER_URL +
+        "https://hanam.edu.vn/get_captcha.php?_=1729685557806&keycode=_search_eos";
       captcha.className = "mb-3";
       captcha_code.focus();
       return;
@@ -54,9 +66,15 @@ export const searchStudent = async (formData) => {
 
     return data;
   } catch (e) {
-    error_message.textContent =
-      "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho chúng tôi.";
-    console.log("err: ", e);
+    if (e.message.includes("Server returned invalid content")) {
+      error_message.textContent = "Không tìm thấy dữ liệu học sinh!";
+      student_id.focus();
+      return;
+    } else {
+      error_message.textContent =
+        "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho chúng tôi.";
+      console.log("err: ", e);
+    }
   }
 };
 
