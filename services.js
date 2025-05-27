@@ -47,7 +47,11 @@ export const searchStudent = async (formData) => {
       document.getElementById("studentInfo").style.display = "block";
     }
 
-    return data;
+    // Remove leading blank lines
+    const cleaned = data.replace(/^\s*\n/gm, '').trim();
+    const data_cleaned = JSON.parse(cleaned);
+
+    return data_cleaned;
   } catch (e) {
     error_message.textContent =
       "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho chúng tôi.";
