@@ -8,6 +8,8 @@ const semester = document.querySelector("#semester");
 const btnLoad = document.querySelector("#btnLoad");
 const captcha_code = document.querySelector("#captcha_code");
 
+const CORS_API_SERVER_URL = "https://hanam-edu.fatties.workers.dev/?";
+
 var formData = new FormData();
 var formData2 = new FormData();
 var isClicked = false;
@@ -55,7 +57,7 @@ const reloadCaptcha = () => {
 
   // Create a new image to preload the captcha
   const newCaptcha = new Image();
-  const captchaUrl = "https://cors.21112003.xyz/https://hanam.edu.vn/get_captcha.php?keycode=_search_eos&_= " + Date.now();
+  const captchaUrl = CORS_API_SERVER_URL + "https://hanam.edu.vn/get_captcha.php?keycode=_search_eos&_=" + Date.now();
 
   newCaptcha.onload = () => {
     // When it's loaded, swap it in
