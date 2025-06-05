@@ -144,7 +144,6 @@ const renderGrade = async (formData, semester = 1) => {
       ?.map(
         (item, index) => `
     <tr>
-      <th scope="row">${index + 1}</th>
       <td>${item.subject_name}</td>
       <td>${semester == 3 ? item.grade_3_1 : item[`grade_${semester}_1M`]}</td>
       <td>${item[`grade_${semester}_2`]}</td>

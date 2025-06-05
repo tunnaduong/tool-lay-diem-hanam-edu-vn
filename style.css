@@ -93,6 +93,17 @@ body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+@media (max-width: 768px) {
+  .main-title {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bi-mortarboard-fill {
+    font-size: 4rem;
+  }
+}
+
 .subtitle {
   font-size: 1.1rem;
   opacity: 0.9;
@@ -250,11 +261,9 @@ body {
   font-weight: 600;
   color: var(--dark-color);
   border: none;
-  padding: 15px;
 }
 
 .table-custom td {
-  padding: 15px;
   border-color: #f3f4f6;
   vertical-align: middle;
 }
