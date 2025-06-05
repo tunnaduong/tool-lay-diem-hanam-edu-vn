@@ -52,8 +52,9 @@ const callApi = async (type = "grade") => {
 
   btnLoad.innerHTML = `
   <div class="spinner-border text-primary" role="status">
-    <span class="visually-hidden">Loading...</span>
+    <span class="visually-hidden">Đang tải...</span>
   </div>
+  <p class="mt-1 text-muted">Đang xử lý yêu cầu...</p>
   `;
 
   isClicked = true;
