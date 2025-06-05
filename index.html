@@ -9,7 +9,7 @@
     <script>
       document.addEventListener("alpine:init", () => {
         Alpine.data("app", () => ({
-          version: "v3.1.4",
+          version: "v3.2.5",
         }));
       });
       window.dataLayer = window.dataLayer || [];
@@ -133,7 +133,7 @@
               <div>
                 <strong>Lưu ý:</strong> Vui lòng nhập đúng thông tin để có kết
                 quả chính xác nhất.<br />
-                Mã học sinh và mã captcha có thể viết hoa hoặc viết thường.
+                Mã học sinh và mã captcha có thể viết hoặc viết thường.
               </div>
             </div>
           </div>
@@ -433,7 +433,174 @@
           </template>
         </div>
       </div>
-      <div class="comment-section main-container">
+      <script>
+        document.addEventListener("alpine:init", () => {
+          Alpine.data("commentApp", () => ({
+            comments: [],
+            page: 1,
+            perPage: 5,
+            hasMore: true,
+            total: 0,
+            form: {
+              name: "",
+              comment: "",
+            },
+            replyForm: {
+              name: "",
+              comment: "",
+            },
+            replyTo: null,
+            apiUrl: "https://tunnaduong.com/test_api/diemthi_comment_api.php",
+            loading: false,
+
+            getTotalComments() {
+              let total = 0;
+              const countReplies = (comments) => {
+                total += comments.length;
+                for (const comment of comments) {
+                  if (comment.replies?.length) {
+                    countReplies(comment.replies);
+                  }
+                }
+              };
+              countReplies(this.comments);
+              return total;
+            },
+
+            fetchComments() {
+              this.loading = true;
+              fetch(
+                this.apiUrl +
+                  `?action=comments&page=${this.page}&per_page=${this.perPage}`
+              )
+                .then((res) => res.json())
+                .then((data) => {
+                  if (this.page === 1) {
+                    this.comments = data.results;
+                  } else {
+                    this.comments = [...this.comments, ...data.results];
+                  }
+                  // Update total count
+                  this.total = data.total || this.getTotalComments();
+                  // Check if we have loaded all comments
+                  this.hasMore = this.comments.length < this.total;
+                })
+                .finally(() => (this.loading = false));
+            },
+
+            loadMore() {
+              this.page++;
+              this.fetchComments();
+            },
+
+            submitComment() {
+              const payload = {
+                name: this.form.name,
+                comment: this.form.comment,
+                parent_id: null,
+              };
+              fetch(this.apiUrl + "?action=comments", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              })
+                .then((res) => res.json())
+                .then(() => {
+                  this.form.name = "";
+                  this.form.comment = "";
+                  this.fetchComments();
+                });
+            },
+
+            submitReply(parentId) {
+              // Find the level 3 parent or use the current parent
+              const findLevel3Parent = (comments, targetId) => {
+                for (const comment of comments) {
+                  if (comment.id === targetId) {
+                    return comment.id;
+                  }
+                  if (comment.replies?.length) {
+                    for (const reply of comment.replies) {
+                      if (reply.id === targetId) {
+                        return reply.id;
+                      }
+                      // If we find the target in level 3 or deeper, return its parent
+                      if (reply.replies?.length) {
+                        for (const nestedReply of reply.replies) {
+                          if (nestedReply.id === targetId) {
+                            return reply.id; // Return level 2 parent
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                return targetId;
+              };
+
+              const actualParentId = findLevel3Parent(this.comments, parentId);
+
+              const payload = {
+                name: this.replyForm.name,
+                comment: this.replyForm.comment,
+                parent_id: actualParentId,
+              };
+              fetch(this.apiUrl + "?action=comments", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              })
+                .then((res) => res.json())
+                .then(() => {
+                  this.replyForm.name = "";
+                  this.replyForm.comment = "";
+                  this.replyTo = null;
+                  this.fetchComments();
+                });
+            },
+
+            getInitial(name) {
+              if (!name) return "";
+              const parts = name.trim().split(/\s+/);
+              if (parts.length === 1) {
+                const word = parts[0];
+                return (word[0] + word.at(-1)).toUpperCase();
+              }
+              return (parts[0][0] + parts.at(-1)[0]).toUpperCase();
+            },
+
+            formatTime(time) {
+              return new Date(time).toLocaleString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              });
+            },
+
+            likeComment(commentId) {
+              fetch(`${this.apiUrl}?action=like`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  comment_id: commentId,
+                }),
+              })
+                .then((res) => res.json())
+                .then(() => {
+                  this.fetchComments();
+                });
+            },
+          }));
+        });
+      </script>
+
+      <div
+        class="comment-section main-container"
+        x-data="commentApp"
+        x-init="fetchComments()"
+      >
         <div class="header-section">
           <h4 class="mb-0 text-uppercase">💬 Thảo luận & Bình luận</h4>
         </div>
@@ -442,272 +609,357 @@
           <h5 class="mb-3">
             <i class="bi bi-pencil-square text-primary"></i> Viết bình luận
           </h5>
-          <form>
+
+          <form @submit.prevent="submitComment()">
             <div class="row mb-3">
               <div class="col-md-6">
-                <label for="name" class="form-label">Họ và tên *</label>
+                <label for="name" class="form-label">*Họ và tên</label>
                 <input
                   type="text"
                   class="form-control"
                   id="name"
-                  placeholder="Nhập họ tên của bạn"
+                  x-model="form.name"
                   required
+                  placeholder="Nhập họ tên của bạn"
                 />
               </div>
             </div>
-
             <div class="mb-3">
               <label for="comment" class="form-label"
-                >Nội dung bình luận *</label
+                >*Nội dung bình luận</label
               >
               <textarea
                 class="form-control"
                 id="comment"
                 rows="4"
-                placeholder="Chia sẻ cảm nghĩ, thắc mắc hoặc kinh nghiệm của bạn về kết quả thi..."
+                x-model="form.comment"
                 required
+                placeholder="Chia sẻ cảm nghĩ, thắc mắc hoặc kinh nghiệm của bạn về kết quả thi..."
               ></textarea>
             </div>
-
             <button type="submit" class="btn btn-primary">
               <i class="bi bi-send"></i> Đăng bình luận
             </button>
           </form>
         </div>
 
-        <!-- Comments List -->
-        <div>
-          <!-- Comments Header -->
+        <!-- Comment List -->
+        <div class="mt-4">
           <div
-            class="d-flex justify-content-between align-items-center mb-4 p-3 border-bottom"
+            class="d-flex justify-content-between align-items-center p-3 border-bottom"
           >
             <h5 class="mb-0 d-flex align-items-center gap-2">
               <i class="bi bi-chat-text text-primary"></i>
               Bình luận
-              <span class="badge bg-primary rounded-pill">24</span>
+              <span
+                class="badge bg-primary rounded-pill"
+                x-text="getTotalComments()"
+              ></span>
             </h5>
-            <div class="dropdown">
-              <button
-                class="btn btn-outline-secondary dropdown-toggle btn-sm"
-                type="button"
-                data-bs-toggle="dropdown"
-              >
-                <i class="bi bi-sort-down"></i> Sắp xếp
-              </button>
-              <ul class="dropdown-menu">
-                <li>
-                  <a class="dropdown-item" href="#"
-                    ><i class="bi bi-clock"></i> Mới nhất</a
-                  >
-                </li>
-                <li>
-                  <a class="dropdown-item" href="#"
-                    ><i class="bi bi-clock-history"></i> Cũ nhất</a
-                  >
-                </li>
-                <li>
-                  <a class="dropdown-item" href="#"
-                    ><i class="bi bi-heart"></i> Phổ biến nhất</a
-                  >
-                </li>
-              </ul>
-            </div>
           </div>
 
-          <!-- Comment 1 -->
-          <div class="card comment-card mb-4 border-0 shadow-sm">
-            <div class="card-body">
-              <div
-                class="d-flex justify-content-between align-items-start mb-3"
-              >
-                <div class="d-flex align-items-center">
-                  <div class="avatar me-3">AN</div>
-                  <div>
-                    <h6 class="mb-1">Nguyễn Văn An</h6>
+          <!-- Loading -->
+          <div class="text-center my-4" x-show="loading">
+            <div class="spinner-border text-primary"></div>
+          </div>
+
+          <!-- Comment Items -->
+          <template x-for="comment in comments" :key="comment.id">
+            <div>
+              <div class="card comment-card border-0 shadow-sm">
+                <div class="card-body">
+                  <div
+                    class="d-flex justify-content-between align-items-start mb-3"
+                  >
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="avatar me-3"
+                        x-text="getInitial(comment.name)"
+                      ></div>
+                      <div>
+                        <h6 class="mb-1 fw-bold" x-text="comment.name"></h6>
+                      </div>
+                    </div>
+                    <small class="text-muted">
+                      <i class="bi bi-clock"></i>
+                      <span x-text="formatTime(comment.created_at)"></span>
+                    </small>
+                  </div>
+                  <p class="card-text" x-text="comment.comment"></p>
+                  <div class="d-flex gap-3">
+                    <button
+                      class="btn btn-sm btn-outline-danger"
+                      @click="likeComment(comment.id)"
+                    >
+                      <i class="bi bi-heart-fill"></i>
+                      <span x-text="comment.likes_count ?? 0"></span>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-primary"
+                      @click="replyTo = replyTo === comment.id ? null : comment.id"
+                    >
+                      <i class="bi bi-reply"></i> Trả lời
+                    </button>
+                  </div>
+
+                  <!-- Form trả lời -->
+                  <div
+                    class="mt-3"
+                    x-show="replyTo === comment.id"
+                    x-transition
+                  >
+                    <form @submit.prevent="submitReply(comment.id)">
+                      <input
+                        type="text"
+                        class="form-control mb-2"
+                        placeholder="*Tên bạn"
+                        x-model="replyForm.name"
+                        required
+                      />
+                      <textarea
+                        class="form-control mb-2"
+                        rows="2"
+                        placeholder="*Trả lời bình luận..."
+                        x-model="replyForm.comment"
+                        required
+                      ></textarea>
+                      <div class="d-flex justify-content-end gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary"
+                          @click="replyTo = null"
+                        >
+                          Hủy
+                        </button>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                          Gửi
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </div>
-                <small class="text-muted">
-                  <i class="bi bi-clock"></i> 2 giờ trước
-                </small>
-              </div>
+                <!-- Replies outside the parent card -->
+                <template x-if="comment.replies?.length">
+                  <template x-for="reply in comment.replies" :key="reply.id">
+                    <div>
+                      <div class="reply-section">
+                        <div class="card border-0 bg-light">
+                          <div class="card-body py-3">
+                            <div
+                              class="d-flex justify-content-between align-items-start mb-2"
+                            >
+                              <div class="d-flex align-items-center">
+                                <div
+                                  class="avatar me-3"
+                                  style="
+                                    width: 35px;
+                                    height: 35px;
+                                    font-size: 14px;
+                                  "
+                                  x-text="getInitial(reply.name)"
+                                ></div>
+                                <div>
+                                  <h6
+                                    class="mb-1 fs-6 fw-bold"
+                                    x-text="reply.name"
+                                  ></h6>
+                                </div>
+                              </div>
+                              <small class="text-muted">
+                                <i class="bi bi-clock"></i>
+                                <span
+                                  x-text="formatTime(reply.created_at)"
+                                ></span>
+                              </small>
+                            </div>
+                            <p
+                              class="card-text mb-2"
+                              x-text="reply.comment"
+                            ></p>
+                            <div class="d-flex gap-3">
+                              <button
+                                class="btn btn-sm btn-outline-danger"
+                                @click="likeComment(reply.id)"
+                              >
+                                <i class="bi bi-heart-fill"></i>
+                                <span x-text="reply.likes_count ?? 0"></span>
+                              </button>
+                              <button
+                                class="btn btn-sm btn-outline-primary"
+                                @click="replyTo = replyTo === reply.id ? null : reply.id"
+                              >
+                                <i class="bi bi-reply"></i> Trả lời
+                              </button>
+                            </div>
 
-              <p class="card-text">
-                Mình vừa tra cứu điểm thi và thấy điểm Toán cao hơn mong đợi!
-                Cảm ơn website đã cung cấp thông tin nhanh chóng và chính xác.
-                Chúc các bạn khác cũng có kết quả tốt! 🎉
-              </p>
-
-              <div class="d-flex gap-3">
-                <button
-                  class="btn btn-sm btn-outline-danger like-btn liked"
-                  data-likes="12"
-                >
-                  <i class="bi bi-heart-fill"></i> 12
-                </button>
-                <button class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-reply"></i> Trả lời
-                </button>
-              </div>
-
-              <!-- Reply -->
-              <div class="reply-section mt-4">
-                <div class="card border-0 bg-light">
-                  <div class="card-body py-3">
-                    <div
-                      class="d-flex justify-content-between align-items-start mb-2"
-                    >
-                      <div class="d-flex align-items-center">
-                        <div
-                          class="avatar me-3"
-                          style="width: 35px; height: 35px; font-size: 14px"
-                        >
-                          MT
-                        </div>
-                        <div>
-                          <h6 class="mb-1 fs-6">Trần Minh Tuấn</h6>
+                            <!-- Form trả lời cho reply -->
+                            <div
+                              class="mt-3"
+                              x-show="replyTo === reply.id"
+                              x-transition
+                            >
+                              <form @submit.prevent="submitReply(reply.id)">
+                                <input
+                                  type="text"
+                                  class="form-control mb-2"
+                                  placeholder="*Tên bạn"
+                                  x-model="replyForm.name"
+                                  required
+                                />
+                                <textarea
+                                  class="form-control mb-2"
+                                  rows="2"
+                                  placeholder="*Trả lời bình luận..."
+                                  x-model="replyForm.comment"
+                                  required
+                                ></textarea>
+                                <div class="d-flex justify-content-end gap-2">
+                                  <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    @click="replyTo = null"
+                                  >
+                                    Hủy
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    class="btn btn-sm btn-primary"
+                                  >
+                                    Gửi
+                                  </button>
+                                </div>
+                              </form>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <small class="text-muted">
-                        <i class="bi bi-clock"></i> 1 giờ trước
-                      </small>
+
+                      <!-- Nested replies outside their parent reply card -->
+                      <template x-if="reply.replies?.length">
+                        <div class="ps-4">
+                          <template
+                            x-for="nestedReply in reply.replies"
+                            :key="nestedReply.id"
+                          >
+                            <div class="reply-section">
+                              <div class="card border-0 bg-light">
+                                <div class="card-body py-3">
+                                  <div
+                                    class="d-flex justify-content-between align-items-start mb-2"
+                                  >
+                                    <div class="d-flex align-items-center">
+                                      <div
+                                        class="avatar me-3"
+                                        style="
+                                          width: 35px;
+                                          height: 35px;
+                                          font-size: 14px;
+                                        "
+                                        x-text="getInitial(nestedReply.name)"
+                                      ></div>
+                                      <div>
+                                        <h6
+                                          class="mb-1 fs-6 fw-bold"
+                                          x-text="nestedReply.name"
+                                        ></h6>
+                                      </div>
+                                    </div>
+                                    <small class="text-muted">
+                                      <i class="bi bi-clock"></i>
+                                      <span
+                                        x-text="formatTime(nestedReply.created_at)"
+                                      ></span>
+                                    </small>
+                                  </div>
+                                  <p
+                                    class="card-text mb-2"
+                                    x-text="nestedReply.comment"
+                                  ></p>
+                                  <div class="d-flex gap-3">
+                                    <button
+                                      class="btn btn-sm btn-outline-danger"
+                                      @click="likeComment(nestedReply.id)"
+                                    >
+                                      <i class="bi bi-heart-fill"></i>
+                                      <span
+                                        x-text="nestedReply.likes_count ?? 0"
+                                      ></span>
+                                    </button>
+                                    <button
+                                      class="btn btn-sm btn-outline-primary"
+                                      @click="replyTo = replyTo === nestedReply.id ? null : nestedReply.id"
+                                    >
+                                      <i class="bi bi-reply"></i> Trả lời
+                                    </button>
+                                  </div>
+
+                                  <!-- Form trả lời cho nested reply -->
+                                  <div
+                                    class="mt-3"
+                                    x-show="replyTo === nestedReply.id"
+                                    x-transition
+                                  >
+                                    <form
+                                      @submit.prevent="submitReply(nestedReply.id)"
+                                    >
+                                      <input
+                                        type="text"
+                                        class="form-control mb-2"
+                                        placeholder="*Tên bạn"
+                                        x-model="replyForm.name"
+                                        required
+                                      />
+                                      <textarea
+                                        class="form-control mb-2"
+                                        rows="2"
+                                        placeholder="*Trả lời bình luận..."
+                                        x-model="replyForm.comment"
+                                        required
+                                      ></textarea>
+                                      <div
+                                        class="d-flex justify-content-end gap-2"
+                                      >
+                                        <button
+                                          type="button"
+                                          class="btn btn-sm btn-outline-secondary"
+                                          @click="replyTo = null"
+                                        >
+                                          Hủy
+                                        </button>
+                                        <button
+                                          type="submit"
+                                          class="btn btn-sm btn-primary"
+                                        >
+                                          Gửi
+                                        </button>
+                                      </div>
+                                    </form>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </template>
+                        </div>
+                      </template>
                     </div>
-                    <p class="card-text mb-2">
-                      Chúc mừng bạn! Mình cũng vừa xem điểm, may mắn là đạt được
-                      mục tiêu đề ra. Cảm ơn bạn đã chia sẻ! 👏
-                    </p>
-                    <div class="d-flex gap-2">
-                      <button
-                        class="btn btn-sm btn-outline-danger like-btn"
-                        data-likes="5"
-                      >
-                        <i class="bi bi-heart"></i> 5
-                      </button>
-                      <button class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-reply"></i> Trả lời
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                  </template>
+                </template>
               </div>
             </div>
-          </div>
-
-          <!-- Comment 2 -->
-          <div class="card comment-card mb-4 border-0 shadow-sm">
-            <div class="card-body">
-              <div
-                class="d-flex justify-content-between align-items-start mb-3"
-              >
-                <div class="d-flex align-items-center">
-                  <div class="avatar me-3">LH</div>
-                  <div>
-                    <h6 class="mb-1">Lê Thị Hương</h6>
-                  </div>
-                </div>
-                <small class="text-muted">
-                  <i class="bi bi-clock"></i> 4 giờ trước
-                </small>
-              </div>
-
-              <p class="card-text">
-                Có ai biết tại sao điểm Văn của mình lại thấp hơn dự kiến không?
-                Mình cảm thấy bài thi khá ổn mà... Có cách nào để xem lại bài
-                thi không các bạn? 🤔
-              </p>
-
-              <div class="d-flex gap-3">
-                <button
-                  class="btn btn-sm btn-outline-danger like-btn"
-                  data-likes="8"
-                >
-                  <i class="bi bi-heart"></i> 8
-                </button>
-                <button class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-reply"></i> Trả lời
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Comment 3 -->
-          <div class="card comment-card mb-4 border-0 shadow-sm">
-            <div class="card-body">
-              <div
-                class="d-flex justify-content-between align-items-start mb-3"
-              >
-                <div class="d-flex align-items-center">
-                  <div class="avatar me-3">DK</div>
-                  <div>
-                    <h6 class="mb-1">Phạm Đức Khang</h6>
-                  </div>
-                </div>
-                <small class="text-muted">
-                  <i class="bi bi-clock"></i> 6 giờ trước
-                </small>
-              </div>
-
-              <p class="card-text">
-                Website này thật sự tiện lợi! Tra cứu nhanh, giao diện đẹp và dễ
-                sử dụng. Điểm Lý của mình đạt 8.5 điểm, khá hài lòng với kết quả
-                này. Cảm ơn team phát triển! 💪
-              </p>
-
-              <div class="d-flex gap-3">
-                <button
-                  class="btn btn-sm btn-outline-danger like-btn"
-                  data-likes="15"
-                >
-                  <i class="bi bi-heart"></i> 15
-                </button>
-                <button class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-reply"></i> Trả lời
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Comment 4 -->
-          <div class="card comment-card mb-4 border-0 shadow-sm">
-            <div class="card-body">
-              <div
-                class="d-flex justify-content-between align-items-start mb-3"
-              >
-                <div class="d-flex align-items-center">
-                  <div class="avatar me-3">NL</div>
-                  <div>
-                    <h6 class="mb-1">Hoàng Ngọc Linh</h6>
-                  </div>
-                </div>
-                <small class="text-muted">
-                  <i class="bi bi-clock"></i> 8 giờ trước
-                </small>
-              </div>
-
-              <p class="card-text">
-                Mọi người ơi, có ai gặp lỗi khi tra cứu điểm không? Mình nhập
-                đúng thông tin rồi nhưng hệ thống báo "không tìm thấy". Có cách
-                khắc phục không ạ? 😅
-              </p>
-
-              <div class="d-flex gap-3">
-                <button
-                  class="btn btn-sm btn-outline-danger like-btn"
-                  data-likes="3"
-                >
-                  <i class="bi bi-heart"></i> 3
-                </button>
-                <button class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-reply"></i> Trả lời
-                </button>
-              </div>
-            </div>
-          </div>
+          </template>
 
           <!-- Load More Button -->
-          <div class="text-center mb-4">
-            <button class="btn btn-outline-primary">
+          <div class="text-center my-4" x-show="hasMore && !loading">
+            <button class="btn btn-outline-primary" @click="loadMore()">
               <i class="bi bi-arrow-down-circle"></i> Xem thêm bình luận
             </button>
+          </div>
+
+          <!-- Loading Spinner for Load More -->
+          <div class="text-center mt-4" x-show="loading">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Đang tải...</span>
+            </div>
           </div>
         </div>
       </div>
