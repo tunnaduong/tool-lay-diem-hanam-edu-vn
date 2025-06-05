@@ -1,4 +1,9 @@
-import { searchStudent, insertCaptcha, getCaptcha } from "./services.js";
+import {
+  searchStudent,
+  insertCaptcha,
+  getCaptcha,
+  showError,
+} from "./services.js";
 
 const getScore = document.querySelector("#getScore");
 const error_message = document.querySelector("#error_message");
@@ -10,12 +15,40 @@ const captcha_code = document.querySelector("#captcha_code");
 
 const CORS_API_SERVER_URL = "https://hanam-edu.fatties.workers.dev/?";
 
+const renderButtons = `<button type="button" id="getScore" class="btn btn-custom btn-primary-custom">
+<i class="bi bi-clipboard-data me-2"></i> Lấy điểm 
+</button> 
+<button type="button" id="getStudentInfo" class="btn btn-custom btn-secondary-custom">
+<i class="bi bi-person-lines-fill me-2"></i> Lấy thông tin học sinh 
+</button>`;
+
 var formData = new FormData();
 var formData2 = new FormData();
 var isClicked = false;
 
+// Form validation
+function validateForm() {
+  const studentId = document.getElementById("student_id").value.trim();
+  const year = document.getElementById("year").value;
+  const semester = document.getElementById("semester").value;
+
+  if (!studentId) {
+    showError("Vui lòng nhập mã học sinh");
+    return false;
+  }
+
+  if (!year || !semester) {
+    showError("Vui lòng chọn năm học và học kỳ");
+    return false;
+  }
+
+  return true;
+}
+
 const callApi = async (type = "grade") => {
-  error_message.textContent = "";
+  if (!validateForm()) {
+    return;
+  }
 
   btnLoad.innerHTML = `
   <div class="spinner-border text-primary" role="status">
@@ -51,13 +84,16 @@ const callApi = async (type = "grade") => {
 
 const reloadCaptcha = () => {
   const captchaImage = document.querySelector("#capcha");
-  
+
   // Show the loading gif
   captchaImage.src = "./loading.gif";
 
   // Create a new image to preload the captcha
   const newCaptcha = new Image();
-  const captchaUrl = CORS_API_SERVER_URL + "https://hanam.edu.vn/get_captcha.php?keycode=_search_eos&_=" + Date.now();
+  const captchaUrl =
+    CORS_API_SERVER_URL +
+    "https://hanam.edu.vn/get_captcha.php?keycode=_search_eos&_=" +
+    Date.now();
 
   newCaptcha.onload = () => {
     // When it's loaded, swap it in
@@ -89,12 +125,7 @@ const renderProfile = async (formData) => {
   `
     ) ?? "";
 
-  btnLoad.innerHTML = `
-      <button id="getScore" class="btn btn-primary">Lấy điểm</button>
-      <button id="getStudentInfo" class="btn btn-secondary">
-            Lấy thông tin học sinh
-          </button>
-      `;
+  btnLoad.innerHTML = renderButtons;
   document.getElementById("studentInfo").scrollIntoView();
   document
     .querySelector("#getStudentInfo")
@@ -122,12 +153,7 @@ const renderGrade = async (formData, semester = 1) => {
   `
       )
       .join("") ?? "";
-  btnLoad.innerHTML = `
-      <button id="getScore" class="btn btn-primary">Lấy điểm</button>
-      <button id="getStudentInfo" class="btn btn-secondary">
-            Lấy thông tin học sinh
-          </button>
-      `;
+  btnLoad.innerHTML = renderButtons;
   document.getElementById("studentGrade").scrollIntoView();
   document
     .getElementById("getScore")

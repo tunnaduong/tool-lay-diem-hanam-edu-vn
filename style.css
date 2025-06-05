@@ -1,0 +1,466 @@
+:root {
+  --primary-color: #4f46e5;
+  --secondary-color: #06b6d4;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --dark-color: #1f2937;
+  --light-bg: #f8fafc;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.main-container {
+  background: white;
+  border-radius: 20px;
+  box-shadow: var(--card-shadow-hover);
+  overflow: hidden;
+  margin: 20px auto;
+  max-width: 1000px;
+}
+
+.header-section {
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 100%
+  );
+  color: white;
+  padding: 30px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.header-section::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="1" fill="white" opacity="0.1"/><circle cx="10" cy="90" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  animation: float 20s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
+}
+
+.social-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.github-badge {
+  transition: transform 0.3s ease;
+}
+
+.github-badge:hover {
+  transform: scale(1.05);
+}
+
+.main-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-top: 10px;
+}
+
+.form-section {
+  padding: 40px;
+}
+
+.form-card {
+  background: var(--light-bg);
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: var(--card-shadow);
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--dark-color);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-control,
+.form-select {
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-custom {
+  padding: 12px 30px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-custom::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.btn-custom:hover::before {
+  left: 100%;
+}
+
+.btn-primary-custom {
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    var(--secondary-color) 100%
+  );
+  color: white;
+}
+
+.btn-primary-custom:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+  color: white;
+}
+
+.btn-secondary-custom {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+}
+
+.btn-secondary-custom:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+  color: white;
+}
+
+.captcha-section {
+  background: #fff3cd;
+  border: 2px solid #ffeaa7;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.captcha-image {
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  margin-right: 10px;
+}
+
+.error-message {
+  background: #fee2e2;
+  border: 2px solid #fecaca;
+  color: #dc2626;
+  padding: 15px;
+  border-radius: 10px;
+  margin: 15px 0;
+  display: none;
+}
+
+.results-section {
+  margin-top: 40px;
+}
+
+.results-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  margin-bottom: 30px;
+}
+
+.results-card:last-child {
+  margin-bottom: 0;
+}
+
+.results-header {
+  background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+  color: white;
+  padding: 20px;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.table-custom {
+  margin: 0;
+}
+
+.table-custom th {
+  background: var(--light-bg);
+  font-weight: 600;
+  color: var(--dark-color);
+  border: none;
+  padding: 15px;
+}
+
+.table-custom td {
+  padding: 15px;
+  border-color: #f3f4f6;
+  vertical-align: middle;
+}
+
+.loading-spinner {
+  display: none;
+  text-align: center;
+  padding: 20px;
+}
+
+.feature-highlight {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--warning-color);
+}
+
+@media (max-width: 768px) {
+  .main-title {
+    font-size: 2rem;
+  }
+
+  .form-section {
+    padding: 20px;
+  }
+
+  .form-card {
+    padding: 20px;
+  }
+
+  .social-section {
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+footer {
+  margin: 40px 0;
+  color: var(--black);
+}
+
+.footer--copyright,
+.footer--fun {
+  margin: 0;
+}
+
+.footer--copyright {
+  font-size: 17px;
+  line-height: 22px;
+}
+
+#footer--mobile {
+  display: none;
+  font-weight: 500;
+}
+
+.footer--fun {
+  font-size: 14px;
+  margin-top: 10px;
+  padding-bottom: 40px;
+  color: #5a5a5a;
+}
+
+@media only screen and (max-width: 960px) {
+  #footer--desktop {
+    display: none;
+  }
+
+  #footer--mobile {
+    display: block;
+  }
+
+  .footer--fun {
+    font-size: 8px;
+  }
+}
+
+.section-header {
+  background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+  color: white;
+  border-radius: 15px 15px 0 0;
+}
+.avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+}
+.comment-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.comment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.reply-section {
+  border-left: 3px solid #6f42c1;
+  margin-left: 3rem;
+}
+.reply-section > div {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.subject-badge {
+  font-size: 0.75rem;
+}
+
+.lookup-card {
+  background: white;
+  border: 2px solid #e3f2fd;
+  border-radius: 15px;
+  transition: all 0.3s ease;
+  margin-bottom: 15px;
+}
+
+.lookup-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(66, 133, 244, 0.15);
+  border-color: #4285f4;
+}
+
+.student-name {
+  font-weight: 600;
+  color: #1976d2;
+  font-size: 16px;
+}
+
+.info-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.location-badge {
+  background: linear-gradient(135deg, #4285f4 0%, #1976d2 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-updating {
+  color: #ff9800;
+  font-weight: 500;
+}
+
+.recent-lookups-container {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.auto-refresh {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.new-lookup {
+  animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+#fb-like {
+  filter: invert(1) hue-rotate(180deg);
+  mix-blend-mode: difference; /* tuỳ chọn nếu muốn blending hài hòa hơn */
+}

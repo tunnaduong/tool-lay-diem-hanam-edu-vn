@@ -1,10 +1,35 @@
 const error_message = document.querySelector("#error_message");
+const error_text = document.getElementById("error_text");
 const student_id = document.querySelector("#student_id");
 const captcha = document.querySelector("#captcha");
 const captcha_code = document.querySelector("#captcha_code");
+const form = document.querySelector(".form-card");
 
 const CORS_API_SERVER_URL = "https://hanam-edu.fatties.workers.dev/?";
 const CAPTCHA_API_SERVER_URL = "https://tunnaduong.com/test_api/captcha.php";
+
+// Store timeout ID globally
+let errorTimeout = null;
+
+// Show error message
+export function showError(message) {
+  // Clear any existing timeout to prevent stacking
+  if (errorTimeout) {
+    clearTimeout(errorTimeout);
+  }
+
+  error_text.textContent = message;
+  error_message.style.display = "block";
+  form.scrollIntoView({ behavior: "smooth" });
+
+  // Store new timeout ID
+  errorTimeout = setTimeout(() => {
+    error_message.style.display = "none";
+    errorTimeout = null;
+  }, 5000);
+
+  student_id.focus();
+}
 
 export const searchStudent = async (formData) => {
   try {
@@ -36,13 +61,11 @@ export const searchStudent = async (formData) => {
     console.log("ma:", formData.get("ma"));
 
     if (data.errors) {
-      error_message.textContent = data.errors[0];
-      student_id.focus();
+      showError(data.errors[0]);
     }
 
     if (data?.data?.length == 0) {
-      error_message.textContent = "Không tìm thấy dữ liệu học sinh!";
-      student_id.focus();
+      showError("Không tìm thấy dữ liệu học sinh!");
       return;
     }
 
@@ -58,6 +81,11 @@ export const searchStudent = async (formData) => {
       return;
     }
 
+    if (Array.isArray(data.errors)) {
+      showError("Không tìm thấy dữ liệu học sinh!");
+      return;
+    }
+
     if (formData.get("action") == "show_gradess") {
       document.getElementById("studentGrade").style.display = "block";
     } else {
@@ -67,12 +95,12 @@ export const searchStudent = async (formData) => {
     return data;
   } catch (e) {
     if (e.message.includes("Server returned invalid content")) {
-      error_message.textContent = "Không tìm thấy dữ liệu học sinh!";
-      student_id.focus();
+      showError("Không tìm thấy dữ liệu học sinh!");
       return;
     } else {
-      error_message.textContent =
-        "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho chúng tôi.";
+      showError(
+        "Đã có lỗi xảy ra. Vui lòng thử lại sau hoặc báo lỗi cho chúng tôi."
+      );
       console.log("err: ", e);
     }
   }
