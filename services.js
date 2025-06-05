@@ -7,6 +7,8 @@ const form = document.querySelector(".form-card");
 
 const CORS_API_SERVER_URL = "https://hanam-edu.fatties.workers.dev/?";
 const CAPTCHA_API_SERVER_URL = "https://tunnaduong.com/test_api/captcha.php";
+const USER_INFO_API_SERVER_URL =
+  "https://tunnaduong.com/test_api/diemthi_lookup_result_api.php";
 
 // Store timeout ID globally
 let errorTimeout = null;
@@ -92,6 +94,10 @@ export const searchStudent = async (formData) => {
       document.getElementById("studentInfo").style.display = "block";
     }
 
+    if (Array.isArray(data?.data) && data?.data?.length > 0) {
+      sendUserInfo(data?.data[0]);
+    }
+
     return data;
   } catch (e) {
     if (e.message.includes("Server returned invalid content")) {
@@ -104,6 +110,25 @@ export const searchStudent = async (formData) => {
       console.log("err: ", e);
     }
   }
+};
+
+const sendUserInfo = async (data) => {
+  const res = await fetch(USER_INFO_API_SERVER_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: data.full_name,
+      class: data.class_name,
+      school: data.dept_name,
+      student_id: data.student_id,
+      sex: data.sex,
+      birth_date: data.birth_date,
+    }),
+  });
+  const data2 = await res.json();
+  console.log(data2);
 };
 
 export const insertCaptcha = (captcha) => {
