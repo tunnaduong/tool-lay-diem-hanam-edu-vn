@@ -260,10 +260,12 @@ body {
   background: var(--light-bg);
   font-weight: 600;
   color: var(--dark-color);
+  font-size: 13px;
 }
 
 .table-custom td {
   vertical-align: middle;
+  font-size: 13px;
 }
 
 .loading-spinner {
