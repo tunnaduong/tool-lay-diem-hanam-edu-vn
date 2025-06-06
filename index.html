@@ -9,7 +9,7 @@
     <script>
       document.addEventListener("alpine:init", () => {
         Alpine.data("app", () => ({
-          version: "v3.2.6",
+          version: "v3.3.7",
         }));
       });
       window.dataLayer = window.dataLayer || [];
@@ -335,6 +335,7 @@
           Alpine.data("recentLookups", () => ({
             lookups: [],
             loading: false,
+            isInitialLoad: true,
             fetchLookups() {
               this.loading = true;
               fetch(
@@ -350,6 +351,7 @@
                 })
                 .finally(() => {
                   this.loading = false;
+                  this.isInitialLoad = false;
                 });
             },
             maskName(name) {
@@ -392,7 +394,7 @@
           </div>
 
           <!-- Loading indicator -->
-          <template x-if="loading">
+          <template x-if="loading && isInitialLoad">
             <!-- Loading Skeleton -->
             <div>
               <div class="skeleton-card"></div>
@@ -403,7 +405,7 @@
             </div>
           </template>
 
-          <template x-if="!loading">
+          <template x-if="!loading || !isInitialLoad">
             <template x-for="student in lookups" :key="student.id">
               <div class="lookup-card p-3">
                 <div class="d-flex justify-content-between align-items-center">
@@ -441,6 +443,7 @@
             perPage: 5,
             hasMore: true,
             total: 0,
+            total_pages: 1,
             form: {
               name: "",
               comment: "",
@@ -452,20 +455,7 @@
             replyTo: null,
             apiUrl: "https://tunnaduong.com/test_api/diemthi_comment_api.php",
             loading: false,
-
-            getTotalComments() {
-              let total = 0;
-              const countReplies = (comments) => {
-                total += comments.length;
-                for (const comment of comments) {
-                  if (comment.replies?.length) {
-                    countReplies(comment.replies);
-                  }
-                }
-              };
-              countReplies(this.comments);
-              return total;
-            },
+            loadingMore: false,
 
             fetchComments() {
               this.loading = true;
@@ -475,22 +465,67 @@
               )
                 .then((res) => res.json())
                 .then((data) => {
+                  const processComments = (comments) => {
+                    return comments.map((comment) => ({
+                      ...comment,
+                      showAllReplies: false,
+                      replies: comment.replies
+                        ? processComments(comment.replies).map((reply) => ({
+                            ...reply,
+                            showAllReplies: false,
+                          }))
+                        : [],
+                    }));
+                  };
+
                   if (this.page === 1) {
-                    this.comments = data.results;
+                    this.comments = processComments(data.results);
                   } else {
-                    this.comments = [...this.comments, ...data.results];
+                    this.comments = [
+                      ...this.comments,
+                      ...processComments(data.results),
+                    ];
                   }
-                  // Update total count
-                  this.total = data.total || this.getTotalComments();
-                  // Check if we have loaded all comments
-                  this.hasMore = this.comments.length < this.total;
+                  this.total = data.total || 0;
+                  this.total_pages = data.total_pages || 1;
+                  this.hasMore = this.page < this.total_pages;
                 })
                 .finally(() => (this.loading = false));
             },
 
             loadMore() {
+              this.loadingMore = true;
               this.page++;
-              this.fetchComments();
+              fetch(
+                this.apiUrl +
+                  `?action=comments&page=${this.page}&per_page=${this.perPage}`
+              )
+                .then((res) => res.json())
+                .then((data) => {
+                  const processComments = (comments) => {
+                    return comments.map((comment) => ({
+                      ...comment,
+                      showAllReplies: false,
+                      replies: comment.replies
+                        ? processComments(comment.replies).map((reply) => ({
+                            ...reply,
+                            showAllReplies: false,
+                          }))
+                        : [],
+                    }));
+                  };
+
+                  this.comments = [
+                    ...this.comments,
+                    ...processComments(data.results),
+                  ];
+                  this.total = data.total || 0;
+                  this.total_pages = data.total_pages || 1;
+                  this.hasMore = this.page < this.total_pages;
+                })
+                .finally(() => {
+                  this.loadingMore = false;
+                });
             },
 
             submitComment() {
@@ -505,32 +540,44 @@
                 body: JSON.stringify(payload),
               })
                 .then((res) => res.json())
-                .then(() => {
+                .then((data) => {
+                  const newComment = {
+                    ...payload,
+                    id: data.comment_id,
+                    created_at: new Date().toISOString(),
+                    likes_count: 0,
+                    replies: [],
+                    showAllReplies: false,
+                  };
+                  this.comments.unshift(newComment);
+                  this.total++;
                   this.form.name = "";
                   this.form.comment = "";
-                  this.fetchComments();
                 });
             },
 
             submitReply(parentId) {
-              // Find the level 3 parent or use the current parent
-              const findLevel3Parent = (comments, targetId) => {
+              // Find the correct parent for the reply while respecting 3 level nesting
+              const findParentForReply = (comments, targetId) => {
+                // Check if replying to a main comment (level 1)
+                const directComment = comments.find((c) => c.id === targetId);
+                if (directComment) return targetId;
+
+                // Check if replying to a first level reply (level 2)
                 for (const comment of comments) {
-                  if (comment.id === targetId) {
-                    return comment.id;
-                  }
-                  if (comment.replies?.length) {
+                  if (comment.replies) {
+                    const firstLevelReply = comment.replies.find(
+                      (r) => r.id === targetId
+                    );
+                    if (firstLevelReply) return targetId; // Keep as reply to level 2
+
+                    // Check if replying to a second level reply (level 3)
                     for (const reply of comment.replies) {
-                      if (reply.id === targetId) {
-                        return reply.id;
-                      }
-                      // If we find the target in level 3 or deeper, return its parent
-                      if (reply.replies?.length) {
-                        for (const nestedReply of reply.replies) {
-                          if (nestedReply.id === targetId) {
-                            return reply.id; // Return level 2 parent
-                          }
-                        }
+                      if (reply.replies) {
+                        const secondLevelReply = reply.replies.find(
+                          (r) => r.id === targetId
+                        );
+                        if (secondLevelReply) return reply.id; // Reply to level 2 parent
                       }
                     }
                   }
@@ -538,24 +585,66 @@
                 return targetId;
               };
 
-              const actualParentId = findLevel3Parent(this.comments, parentId);
+              const parentForReply = findParentForReply(
+                this.comments,
+                parentId
+              );
 
               const payload = {
                 name: this.replyForm.name,
                 comment: this.replyForm.comment,
-                parent_id: actualParentId,
+                parent_id: parentForReply,
               };
+
               fetch(this.apiUrl + "?action=comments", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
               })
                 .then((res) => res.json())
-                .then(() => {
+                .then((data) => {
+                  const newReply = {
+                    ...payload,
+                    id: data.comment_id,
+                    created_at: new Date().toISOString(),
+                    likes_count: 0,
+                    replies: [],
+                    showAllReplies: false,
+                  };
+
+                  // Update the comment tree with the new reply
+                  const updateReplies = (comments) => {
+                    for (let comment of comments) {
+                      // Check if this is the parent comment
+                      if (comment.id === parentForReply) {
+                        if (!comment.replies) comment.replies = [];
+                        comment.replies.unshift(newReply);
+                        comment.showAllReplies = true;
+                        this.total++;
+                        return true;
+                      }
+                      // Check in first level replies
+                      if (comment.replies?.length) {
+                        for (let reply of comment.replies) {
+                          if (reply.id === parentForReply) {
+                            if (!reply.replies) reply.replies = [];
+                            reply.replies.unshift(newReply);
+                            comment.showAllReplies = true;
+                            this.total++;
+                            return true;
+                          }
+                        }
+                        // If not found in direct children, recurse deeper
+                        if (updateReplies(comment.replies)) return true;
+                      }
+                    }
+                    return false;
+                  };
+
+                  updateReplies(this.comments);
                   this.replyForm.name = "";
                   this.replyForm.comment = "";
                   this.replyTo = null;
-                  this.fetchComments();
                 });
             },
 
@@ -644,17 +733,14 @@
         </div>
 
         <!-- Comment List -->
-        <div class="mt-4">
+        <div>
           <div
             class="d-flex justify-content-between align-items-center p-3 border-bottom"
           >
             <h5 class="mb-0 d-flex align-items-center gap-2">
               <i class="bi bi-chat-text text-primary"></i>
               Bình luận
-              <span
-                class="badge bg-primary rounded-pill"
-                x-text="getTotalComments()"
-              ></span>
+              <span class="badge bg-primary rounded-pill" x-text="total"></span>
             </h5>
           </div>
 
@@ -667,7 +753,7 @@
           <template x-for="comment in comments" :key="comment.id">
             <div>
               <div class="card comment-card border-0 shadow-sm">
-                <div class="card-body">
+                <div class="card-body pb-0">
                   <div
                     class="d-flex justify-content-between align-items-start mb-3"
                   >
@@ -686,7 +772,7 @@
                     </small>
                   </div>
                   <p class="card-text" x-text="comment.comment"></p>
-                  <div class="d-flex gap-3">
+                  <div class="d-flex gap-3 mb-3">
                     <button
                       class="btn btn-sm btn-outline-danger"
                       @click="likeComment(comment.id)"
@@ -737,230 +823,297 @@
                       </div>
                     </form>
                   </div>
-                </div>
-                <!-- Replies outside the parent card -->
-                <template x-if="comment.replies?.length">
-                  <template x-for="reply in comment.replies" :key="reply.id">
-                    <div>
-                      <div class="reply-section">
-                        <div class="card border-0 bg-light">
-                          <div class="card-body py-3">
-                            <div
-                              class="d-flex justify-content-between align-items-start mb-2"
-                            >
-                              <div class="d-flex align-items-center">
-                                <div
-                                  class="avatar me-3"
-                                  style="
-                                    width: 35px;
-                                    height: 35px;
-                                    font-size: 14px;
-                                  "
-                                  x-text="getInitial(reply.name)"
-                                ></div>
-                                <div>
-                                  <h6
-                                    class="mb-1 fs-6 fw-bold"
-                                    x-text="reply.name"
-                                  ></h6>
-                                </div>
-                              </div>
-                              <small class="text-muted">
-                                <i class="bi bi-clock"></i>
-                                <span
-                                  x-text="formatTime(reply.created_at)"
-                                ></span>
-                              </small>
-                            </div>
-                            <p
-                              class="card-text mb-2"
-                              x-text="reply.comment"
-                            ></p>
-                            <div class="d-flex gap-3">
-                              <button
-                                class="btn btn-sm btn-outline-danger"
-                                @click="likeComment(reply.id)"
-                              >
-                                <i class="bi bi-heart-fill"></i>
-                                <span x-text="reply.likes_count ?? 0"></span>
-                              </button>
-                              <button
-                                class="btn btn-sm btn-outline-primary"
-                                @click="replyTo = replyTo === reply.id ? null : reply.id"
-                              >
-                                <i class="bi bi-reply"></i> Trả lời
-                              </button>
-                            </div>
 
-                            <!-- Form trả lời cho reply -->
-                            <div
-                              class="mt-3"
-                              x-show="replyTo === reply.id"
-                              x-transition
-                            >
-                              <form @submit.prevent="submitReply(reply.id)">
-                                <input
-                                  type="text"
-                                  class="form-control mb-2"
-                                  placeholder="*Tên bạn"
-                                  x-model="replyForm.name"
-                                  required
-                                />
-                                <textarea
-                                  class="form-control mb-2"
-                                  rows="2"
-                                  placeholder="*Trả lời bình luận..."
-                                  x-model="replyForm.comment"
-                                  required
-                                ></textarea>
-                                <div class="d-flex justify-content-end gap-2">
-                                  <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-secondary"
-                                    @click="replyTo = null"
-                                  >
-                                    Hủy
-                                  </button>
-                                  <button
-                                    type="submit"
-                                    class="btn btn-sm btn-primary"
-                                  >
-                                    Gửi
-                                  </button>
+                  <!-- Replies outside the parent card -->
+                  <template x-if="comment.replies?.length">
+                    <div class="reply-section">
+                      <template
+                        x-for="(reply, index) in comment.replies"
+                        :key="reply.id"
+                      >
+                        <div x-show="index < 2 || comment.showAllReplies">
+                          <div class="card border-0 mb-2">
+                            <div class="card-body py-3 pe-0 pb-0">
+                              <div
+                                class="d-flex justify-content-between align-items-start mb-2"
+                              >
+                                <div class="d-flex align-items-center">
+                                  <div
+                                    class="avatar me-3"
+                                    style="
+                                      width: 35px;
+                                      height: 35px;
+                                      font-size: 14px;
+                                    "
+                                    x-text="getInitial(reply.name)"
+                                  ></div>
+                                  <div>
+                                    <h6
+                                      class="mb-1 fs-6 fw-bold"
+                                      x-text="reply.name"
+                                    ></h6>
+                                  </div>
                                 </div>
-                              </form>
+                                <small class="text-muted">
+                                  <i class="bi bi-clock"></i>
+                                  <span
+                                    x-text="formatTime(reply.created_at)"
+                                  ></span>
+                                </small>
+                              </div>
+                              <p
+                                class="card-text mb-2"
+                                x-text="reply.comment"
+                              ></p>
+                              <div class="d-flex gap-3">
+                                <button
+                                  class="btn btn-sm btn-outline-danger"
+                                  @click="likeComment(reply.id)"
+                                >
+                                  <i class="bi bi-heart-fill"></i>
+                                  <span x-text="reply.likes_count ?? 0"></span>
+                                </button>
+                                <button
+                                  class="btn btn-sm btn-outline-primary"
+                                  @click="replyTo = replyTo === reply.id ? null : reply.id"
+                                >
+                                  <i class="bi bi-reply"></i> Trả lời
+                                </button>
+                              </div>
+
+                              <!-- Form trả lời cho reply -->
+                              <div
+                                class="mt-3"
+                                x-show="replyTo === reply.id"
+                                x-transition
+                              >
+                                <form @submit.prevent="submitReply(reply.id)">
+                                  <input
+                                    type="text"
+                                    class="form-control mb-2"
+                                    placeholder="*Tên bạn"
+                                    x-model="replyForm.name"
+                                    required
+                                  />
+                                  <textarea
+                                    class="form-control mb-2"
+                                    rows="2"
+                                    placeholder="*Trả lời bình luận..."
+                                    x-model="replyForm.comment"
+                                    required
+                                  ></textarea>
+                                  <div class="d-flex justify-content-end gap-2">
+                                    <button
+                                      type="button"
+                                      class="btn btn-sm btn-outline-secondary"
+                                      @click="replyTo = null"
+                                    >
+                                      Hủy
+                                    </button>
+                                    <button
+                                      type="submit"
+                                      class="btn btn-sm btn-primary"
+                                    >
+                                      Gửi
+                                    </button>
+                                  </div>
+                                </form>
+                              </div>
+
+                              <!-- Nested replies -->
+                              <template x-if="reply.replies?.length">
+                                <div class="nested-replies mt-3">
+                                  <template
+                                    x-for="(nestedReply, nestedIndex) in reply.replies"
+                                    :key="nestedReply.id"
+                                  >
+                                    <div
+                                      x-show="nestedIndex < 2 || reply.showAllReplies"
+                                    >
+                                      <div class="card border-0 mb-2">
+                                        <div class="card-body py-3 pe-0">
+                                          <div
+                                            class="d-flex justify-content-between align-items-start mb-2"
+                                          >
+                                            <div
+                                              class="d-flex align-items-center"
+                                            >
+                                              <div
+                                                class="avatar me-3"
+                                                style="
+                                                  width: 30px;
+                                                  height: 30px;
+                                                  font-size: 12px;
+                                                "
+                                                x-text="getInitial(nestedReply.name)"
+                                              ></div>
+                                              <div>
+                                                <h6
+                                                  class="mb-1 fs-6 fw-bold"
+                                                  x-text="nestedReply.name"
+                                                ></h6>
+                                              </div>
+                                            </div>
+                                            <small class="text-muted">
+                                              <i class="bi bi-clock"></i>
+                                              <span
+                                                x-text="formatTime(nestedReply.created_at)"
+                                              ></span>
+                                            </small>
+                                          </div>
+                                          <p
+                                            class="card-text mb-2"
+                                            x-text="nestedReply.comment"
+                                          ></p>
+                                          <div class="d-flex gap-3">
+                                            <button
+                                              class="btn btn-sm btn-outline-danger"
+                                              @click="likeComment(nestedReply.id)"
+                                            >
+                                              <i class="bi bi-heart-fill"></i>
+                                              <span
+                                                x-text="nestedReply.likes_count ?? 0"
+                                              ></span>
+                                            </button>
+                                            <button
+                                              class="btn btn-sm btn-outline-primary"
+                                              @click="replyTo = replyTo === nestedReply.id ? null : nestedReply.id"
+                                            >
+                                              <i class="bi bi-reply"></i> Trả
+                                              lời
+                                            </button>
+                                          </div>
+
+                                          <!-- Form trả lời cho nested reply -->
+                                          <div
+                                            class="mt-3"
+                                            x-show="replyTo === nestedReply.id"
+                                            x-transition
+                                          >
+                                            <form
+                                              @submit.prevent="submitReply(nestedReply.id)"
+                                            >
+                                              <input
+                                                type="text"
+                                                class="form-control mb-2"
+                                                placeholder="*Tên bạn"
+                                                x-model="replyForm.name"
+                                                required
+                                              />
+                                              <textarea
+                                                class="form-control mb-2"
+                                                rows="2"
+                                                placeholder="*Trả lời bình luận..."
+                                                x-model="replyForm.comment"
+                                                required
+                                              ></textarea>
+                                              <div
+                                                class="d-flex justify-content-end gap-2"
+                                              >
+                                                <button
+                                                  type="button"
+                                                  class="btn btn-sm btn-outline-secondary"
+                                                  @click="replyTo = null"
+                                                >
+                                                  Hủy
+                                                </button>
+                                                <button
+                                                  type="submit"
+                                                  class="btn btn-sm btn-primary"
+                                                >
+                                                  Gửi
+                                                </button>
+                                              </div>
+                                            </form>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </template>
+
+                                  <!-- Show more/less buttons for level 3 replies -->
+                                  <template x-if="reply.replies.length > 2">
+                                    <div class="ps-3 pb-2">
+                                      <button
+                                        x-show="!reply.showAllReplies"
+                                        class="btn btn-sm btn-link text-decoration-none ps-0"
+                                        @click="reply.showAllReplies = true"
+                                      >
+                                        <i class="bi bi-chevron-down"></i>
+                                        Xem thêm
+                                        <span
+                                          x-text="reply.replies.length - 2"
+                                        ></span>
+                                        phản hồi
+                                      </button>
+                                      <button
+                                        x-show="reply.showAllReplies"
+                                        class="btn btn-sm btn-link text-decoration-none ps-0"
+                                        @click="reply.showAllReplies = false"
+                                      >
+                                        <i class="bi bi-chevron-up"></i> Thu gọn
+                                      </button>
+                                    </div>
+                                  </template>
+                                </div>
+                              </template>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </template>
 
-                      <!-- Nested replies outside their parent reply card -->
-                      <template x-if="reply.replies?.length">
-                        <div class="ps-4">
-                          <template
-                            x-for="nestedReply in reply.replies"
-                            :key="nestedReply.id"
-                          >
-                            <div class="reply-section">
-                              <div class="card border-0 bg-light">
-                                <div class="card-body py-3">
-                                  <div
-                                    class="d-flex justify-content-between align-items-start mb-2"
-                                  >
-                                    <div class="d-flex align-items-center">
-                                      <div
-                                        class="avatar me-3"
-                                        style="
-                                          width: 35px;
-                                          height: 35px;
-                                          font-size: 14px;
-                                        "
-                                        x-text="getInitial(nestedReply.name)"
-                                      ></div>
-                                      <div>
-                                        <h6
-                                          class="mb-1 fs-6 fw-bold"
-                                          x-text="nestedReply.name"
-                                        ></h6>
-                                      </div>
-                                    </div>
-                                    <small class="text-muted">
-                                      <i class="bi bi-clock"></i>
-                                      <span
-                                        x-text="formatTime(nestedReply.created_at)"
-                                      ></span>
-                                    </small>
-                                  </div>
-                                  <p
-                                    class="card-text mb-2"
-                                    x-text="nestedReply.comment"
-                                  ></p>
-                                  <div class="d-flex gap-3">
-                                    <button
-                                      class="btn btn-sm btn-outline-danger"
-                                      @click="likeComment(nestedReply.id)"
-                                    >
-                                      <i class="bi bi-heart-fill"></i>
-                                      <span
-                                        x-text="nestedReply.likes_count ?? 0"
-                                      ></span>
-                                    </button>
-                                    <button
-                                      class="btn btn-sm btn-outline-primary"
-                                      @click="replyTo = replyTo === nestedReply.id ? null : nestedReply.id"
-                                    >
-                                      <i class="bi bi-reply"></i> Trả lời
-                                    </button>
-                                  </div>
-
-                                  <!-- Form trả lời cho nested reply -->
-                                  <div
-                                    class="mt-3"
-                                    x-show="replyTo === nestedReply.id"
-                                    x-transition
-                                  >
-                                    <form
-                                      @submit.prevent="submitReply(nestedReply.id)"
-                                    >
-                                      <input
-                                        type="text"
-                                        class="form-control mb-2"
-                                        placeholder="*Tên bạn"
-                                        x-model="replyForm.name"
-                                        required
-                                      />
-                                      <textarea
-                                        class="form-control mb-2"
-                                        rows="2"
-                                        placeholder="*Trả lời bình luận..."
-                                        x-model="replyForm.comment"
-                                        required
-                                      ></textarea>
-                                      <div
-                                        class="d-flex justify-content-end gap-2"
-                                      >
-                                        <button
-                                          type="button"
-                                          class="btn btn-sm btn-outline-secondary"
-                                          @click="replyTo = null"
-                                        >
-                                          Hủy
-                                        </button>
-                                        <button
-                                          type="submit"
-                                          class="btn btn-sm btn-primary"
-                                        >
-                                          Gửi
-                                        </button>
-                                      </div>
-                                    </form>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </template>
+                      <!-- Show more/less buttons for main replies -->
+                      <template x-if="comment.replies.length > 2">
+                        <div class="ps-3 pb-2">
+                          <div>
+                            <button
+                              x-show="!comment.showAllReplies"
+                              class="btn btn-sm btn-link text-decoration-none ps-0"
+                              @click="comment.showAllReplies = true"
+                            >
+                              <i class="bi bi-chevron-down"></i>
+                              Xem thêm
+                              <span x-text="comment.replies.length - 2"></span>
+                              phản hồi
+                            </button>
+                            <button
+                              x-show="comment.showAllReplies"
+                              class="btn btn-sm btn-link text-decoration-none ps-0"
+                              @click="comment.showAllReplies = false"
+                            >
+                              <i class="bi bi-chevron-up"></i> Thu gọn
+                            </button>
+                          </div>
                         </div>
                       </template>
                     </div>
                   </template>
-                </template>
+                </div>
               </div>
             </div>
           </template>
 
           <!-- Load More Button -->
-          <div class="text-center my-4" x-show="hasMore && !loading">
-            <button class="btn btn-outline-primary" @click="loadMore()">
-              <i class="bi bi-arrow-down-circle"></i> Xem thêm bình luận
+          <div
+            class="text-center my-4"
+            x-show="hasMore && !loading && page < total_pages"
+          >
+            <button
+              class="btn btn-outline-primary"
+              @click="loadMore()"
+              :disabled="loadingMore"
+            >
+              <i x-show="!loadingMore" class="bi bi-arrow-down-circle"></i>
+              <span>Xem thêm bình luận</span>
             </button>
           </div>
 
-          <!-- Loading Spinner for Load More -->
-          <div class="text-center mt-4" x-show="loading">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Đang tải...</span>
+          <template x-if="loadingMore">
+            <!-- Loading -->
+            <div class="text-center my-4">
+              <div class="spinner-border text-primary"></div>
             </div>
-          </div>
+          </template>
         </div>
       </div>
       <article class="main-container p-4">

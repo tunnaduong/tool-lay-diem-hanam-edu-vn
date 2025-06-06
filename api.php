@@ -68,10 +68,21 @@ function getComments($mysqli)
     $per_page = isset($_GET['per_page']) ? max(1, intval($_GET['per_page'])) : 5;
     $offset = ($page - 1) * $per_page;
 
-    // Get total count first
-    $count_sql = "SELECT COUNT(*) as total FROM comments";
+    // Get both total counts
+    $count_sql = "SELECT 
+        (SELECT COUNT(*) FROM comments) as total_all,
+        (SELECT COUNT(*) FROM comments WHERE parent_id IS NULL) as total_parents";
     $count_result = $mysqli->query($count_sql);
-    $total_count = $count_result->fetch_assoc()['total'];
+    $count_data = $count_result->fetch_assoc();
+    $total_count = $count_data['total_all'];
+    $total_parents = $count_data['total_parents'];
+
+    // If page is beyond total pages, adjust it
+    $total_pages = ceil($total_parents / $per_page);
+    if ($page > $total_pages && $total_pages > 0) {
+        $page = $total_pages;
+        $offset = ($page - 1) * $per_page;
+    }
 
     // Get all comments ordered by created_at
     $sql = "SELECT c.id, c.name, c.comment, c.parent_id, c.created_at,
@@ -102,11 +113,13 @@ function getComments($mysqli)
     if (!empty($comments)) {
         $parent_ids = array_column($comments, 'id');
         $placeholders = str_repeat('?,', count($parent_ids) - 1) . '?';
+
+        // First get direct replies
         $replies_sql = "SELECT c.id, c.name, c.comment, c.parent_id, c.created_at,
-                       (SELECT COUNT(*) FROM likes l WHERE l.comment_id = c.id) as likes_count
-                       FROM comments c 
-                       WHERE c.parent_id IN ($placeholders)
-                       ORDER BY c.created_at DESC";
+                      (SELECT COUNT(*) FROM likes l WHERE l.comment_id = c.id) as likes_count
+                      FROM comments c 
+                      WHERE c.parent_id IN ($placeholders)
+                      ORDER BY c.created_at DESC";
 
         $stmt = $mysqli->prepare($replies_sql);
         $types = str_repeat('i', count($parent_ids));
@@ -114,9 +127,32 @@ function getComments($mysqli)
         $stmt->execute();
         $replies_result = $stmt->get_result();
 
+        $reply_ids = [];
         while ($row = $replies_result->fetch_assoc()) {
             $row['likes_count'] = (int)$row['likes_count'];
             $comments[] = $row;
+            $reply_ids[] = $row['id'];
+        }
+
+        // Then get replies to replies if any exist
+        if (!empty($reply_ids)) {
+            $reply_placeholders = str_repeat('?,', count($reply_ids) - 1) . '?';
+            $nested_replies_sql = "SELECT c.id, c.name, c.comment, c.parent_id, c.created_at,
+                                (SELECT COUNT(*) FROM likes l WHERE l.comment_id = c.id) as likes_count
+                                FROM comments c 
+                                WHERE c.parent_id IN ($reply_placeholders)
+                                ORDER BY c.created_at DESC";
+
+            $stmt = $mysqli->prepare($nested_replies_sql);
+            $types = str_repeat('i', count($reply_ids));
+            $stmt->bind_param($types, ...$reply_ids);
+            $stmt->execute();
+            $nested_replies_result = $stmt->get_result();
+
+            while ($row = $nested_replies_result->fetch_assoc()) {
+                $row['likes_count'] = (int)$row['likes_count'];
+                $comments[] = $row;
+            }
         }
     }
 
@@ -126,8 +162,10 @@ function getComments($mysqli)
     echo json_encode([
         'results' => $commentTree,
         'total' => $total_count,
+        'total_parents' => $total_parents,
         'page' => $page,
-        'per_page' => $per_page
+        'per_page' => $per_page,
+        'total_pages' => $total_pages
     ]);
 }
 

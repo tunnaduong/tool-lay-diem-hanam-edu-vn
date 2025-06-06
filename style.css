@@ -388,6 +388,17 @@ footer {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
+
+/* Add styling for level 3 nested replies */
+.nested-replies {
+  border-left: 3px solid #6f42c1;
+  margin-left: 1rem;
+}
+.nested-replies > div {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
 .subject-badge {
   font-size: 0.75rem;
 }
