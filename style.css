@@ -616,6 +616,9 @@ footer {
 .comment-text {
   position: relative;
   margin-bottom: 10px;
+  /* keep break line */
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .comment-text-content {
