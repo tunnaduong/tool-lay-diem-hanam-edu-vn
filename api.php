@@ -205,9 +205,35 @@ function createComment($mysqli)
     $input = json_decode(file_get_contents('php://input'), true);
 
     // Validate input
-    if (!isset($input['name']) || !isset($input['comment'])) {
+    if (!isset($input['name']) || !isset($input['comment']) || !isset($input['recaptcha_response'])) {
         http_response_code(400);
-        echo json_encode(['error' => 'Missing required parameters: name and comment']);
+        echo json_encode(['error' => 'Missing required parameters: name, comment, and reCAPTCHA response']);
+        return;
+    }
+
+    // Verify reCAPTCHA
+    $recaptcha_secret = '6LdWZ14rAAAAACpkz8Dox7Nu8DonETe9xIDjfr85';
+    $verify_url = 'https://www.google.com/recaptcha/api/siteverify';
+    $data = [
+        'secret' => $recaptcha_secret,
+        'response' => $input['recaptcha_response']
+    ];
+
+    $options = [
+        'http' => [
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method' => 'POST',
+            'content' => http_build_query($data)
+        ]
+    ];
+
+    $context = stream_context_create($options);
+    $verify_response = file_get_contents($verify_url, false, $context);
+    $response_data = json_decode($verify_response);
+
+    if (!$response_data->success) {
+        http_response_code(400);
+        echo json_encode(['error' => 'reCAPTCHA verification failed']);
         return;
     }
 

@@ -7,9 +7,19 @@
       src="https://www.googletagmanager.com/gtag/js?id=G-15X3QZ453F"
     ></script>
     <script>
+      // Global callback for reCAPTCHA
+      var onloadCallback = function () {
+        // Initialize reCAPTCHA for any Alpine components that need it
+        if (typeof Alpine !== "undefined") {
+          document.querySelectorAll('[x-data="commentApp"]').forEach((el) => {
+            Alpine.$data(el).initializeRecaptcha();
+          });
+        }
+      };
+
       document.addEventListener("alpine:init", () => {
         Alpine.data("app", () => ({
-          version: "v3.4.13",
+          version: "v3.5.14",
         }));
       });
       window.dataLayer = window.dataLayer || [];
@@ -80,6 +90,12 @@
     <link rel="stylesheet" href="ads.css" />
 
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+
+    <script
+      src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
+      async
+      defer
+    ></script>
   </head>
 
   <body>
@@ -482,15 +498,40 @@
             form: {
               name: "",
               comment: "",
+              recaptchaId: null,
             },
             replyForm: {
               name: "",
               comment: "",
+              recaptchaId: null,
             },
             replyTo: null,
             apiUrl: "https://tunnaduong.com/test_api/diemthi_comment_api.php",
             loading: false,
             loadingMore: false,
+            submitting: false,
+            expandedComments: new Set(),
+
+            checkOverflow(el) {
+              if (!el) return false;
+              return el.scrollHeight > el.clientHeight;
+            },
+
+            initComment(el, commentId) {
+              if (!el) return;
+
+              // Wait for next tick to ensure content is rendered
+              setTimeout(() => {
+                const textEl = el.querySelector(".comment-text-content");
+                const isOverflowing = textEl.scrollHeight > textEl.clientHeight;
+
+                if (isOverflowing) {
+                  textEl.parentElement.classList.add("overflowing");
+                } else {
+                  textEl.parentElement.classList.remove("overflowing");
+                }
+              }, 0);
+            },
 
             fetchComments() {
               this.loading = true;
@@ -528,6 +569,22 @@
                 .finally(() => (this.loading = false));
             },
 
+            isExpanded(commentId) {
+              return this.expandedComments.has(commentId);
+            },
+
+            toggleExpand(commentId) {
+              if (this.expandedComments.has(commentId)) {
+                this.expandedComments.delete(commentId);
+              } else {
+                this.expandedComments.add(commentId);
+              }
+            },
+
+            truncateText(text) {
+              return text.length > 600 ? text.substring(0, 600) + "..." : text;
+            },
+
             loadMore() {
               this.loadingMore = true;
               this.page++;
@@ -563,11 +620,79 @@
                 });
             },
 
+            init() {
+              this.fetchComments();
+              // We'll initialize reCAPTCHA via the global callback now
+            },
+
+            initializeRecaptcha() {
+              // Initialize main comment reCAPTCHA
+              if (
+                document.getElementById("comment-recaptcha") &&
+                typeof grecaptcha !== "undefined" &&
+                grecaptcha.render
+              ) {
+                try {
+                  this.form.recaptchaId = grecaptcha.render(
+                    "comment-recaptcha",
+                    {
+                      sitekey: "6LdWZ14rAAAAAMKrNmzuYet8dryd7zNbyIXCkfPU",
+                    }
+                  );
+                } catch (e) {
+                  console.error("Error initializing main reCAPTCHA:", e);
+                }
+              }
+            },
+
+            showReplyForm(commentId) {
+              if (this.replyTo === commentId) {
+                this.replyTo = null;
+                return;
+              }
+              this.replyTo = commentId;
+
+              // Initialize reply reCAPTCHA after a short delay to ensure the element exists
+              setTimeout(() => {
+                const replyRecaptchaId = `reply-recaptcha-${commentId}`;
+                if (
+                  document.getElementById(replyRecaptchaId) &&
+                  typeof grecaptcha !== "undefined" &&
+                  grecaptcha.render
+                ) {
+                  try {
+                    this.replyForm.recaptchaId = grecaptcha.render(
+                      replyRecaptchaId,
+                      {
+                        sitekey: "6LdWZ14rAAAAAMKrNmzuYet8dryd7zNbyIXCkfPU",
+                      }
+                    );
+                  } catch (e) {
+                    console.error("Error initializing reply reCAPTCHA:", e);
+                  }
+                }
+              }, 100);
+            },
+
             submitComment() {
+              if (this.submitting) return;
+
+              // Get reCAPTCHA response using the stored widget ID
+              const recaptchaResponse = grecaptcha.getResponse(
+                this.form.recaptchaId
+              );
+              if (!recaptchaResponse) {
+                alert("Vui lòng xác nhận bạn không phải robot");
+                return;
+              }
+
+              this.submitting = true;
+
               const payload = {
                 name: this.form.name,
                 comment: this.form.comment,
                 parent_id: null,
+                recaptcha_response: recaptchaResponse,
               };
               fetch(this.apiUrl + "?action=comments", {
                 method: "POST",
@@ -588,10 +713,29 @@
                   this.total++;
                   this.form.name = "";
                   this.form.comment = "";
-                });
+                  // Reset reCAPTCHA after successful submission
+                  grecaptcha.reset(this.form.recaptchaId);
+                })
+                .catch((error) => {
+                  alert("Có lỗi xảy ra khi gửi bình luận. Vui lòng thử lại.");
+                })
+                .finally(() => (this.submitting = false));
             },
 
             submitReply(parentId) {
+              if (this.submitting) return;
+
+              // Get reCAPTCHA response using the stored widget ID
+              const recaptchaResponse = grecaptcha.getResponse(
+                this.replyForm.recaptchaId
+              );
+              if (!recaptchaResponse) {
+                alert("Vui lòng xác nhận bạn không phải robot");
+                return;
+              }
+
+              this.submitting = true;
+
               // Find the correct parent for the reply while respecting 3 level nesting
               const findParentForReply = (comments, targetId) => {
                 // Check if replying to a main comment (level 1)
@@ -629,6 +773,7 @@
                 name: this.replyForm.name,
                 comment: this.replyForm.comment,
                 parent_id: parentForReply,
+                recaptcha_response: recaptchaResponse,
               };
 
               fetch(this.apiUrl + "?action=comments", {
@@ -680,7 +825,13 @@
                   this.replyForm.name = "";
                   this.replyForm.comment = "";
                   this.replyTo = null;
-                });
+                  // Reset reCAPTCHA after successful submission
+                  grecaptcha.reset(this.replyForm.recaptchaId);
+                })
+                .catch((error) => {
+                  alert("Có lỗi xảy ra khi gửi bình luận. Vui lòng thử lại.");
+                })
+                .finally(() => (this.submitting = false));
             },
 
             getInitial(name) {
@@ -723,7 +874,7 @@
       <div
         class="comment-section main-container"
         x-data="commentApp"
-        x-init="fetchComments()"
+        x-init="init()"
       >
         <div class="header-section">
           <h4 class="mb-0 text-uppercase">💬 Thảo luận & Bình luận</h4>
@@ -761,8 +912,18 @@
                 placeholder="Chia sẻ cảm nghĩ, thắc mắc hoặc kinh nghiệm của bạn về kết quả thi..."
               ></textarea>
             </div>
-            <button type="submit" class="btn btn-primary">
-              <i class="bi bi-send"></i> Đăng bình luận
+            <div id="comment-recaptcha" class="mb-3"></div>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="submitting"
+            >
+              <template x-if="!submitting">
+                <span><i class="bi bi-send"></i> Đăng bình luận</span>
+              </template>
+              <template x-if="submitting">
+                <span><i class="bi bi-hourglass-split"></i> Đang gửi...</span>
+              </template>
             </button>
           </form>
         </div>
@@ -806,10 +967,24 @@
                       <span x-text="formatTime(comment.created_at)"></span>
                     </small>
                   </div>
-                  <p
-                    class="card-text comment-text"
-                    x-text="comment.comment"
-                  ></p>
+                  <div
+                    :class="{'comment-text': true, 'truncated': !isExpanded(comment.id)}"
+                    x-init="initComment($el, comment.id)"
+                  >
+                    <p
+                      class="comment-text-content card-text mb-0"
+                      x-text="isExpanded(comment.id) ? comment.comment : truncateText(comment.comment)"
+                    ></p>
+                  </div>
+                  <button
+                    class="show-more-btn mb-2"
+                    @click="toggleExpand(comment.id)"
+                    x-show="comment.comment.length > 600"
+                  >
+                    <span
+                      x-text="isExpanded(comment.id) ? 'Thu gọn' : 'Xem thêm'"
+                    ></span>
+                  </button>
                   <div class="d-flex gap-3 mb-3">
                     <button
                       class="btn btn-sm btn-outline-danger"
@@ -820,7 +995,7 @@
                     </button>
                     <button
                       class="btn btn-sm btn-outline-primary"
-                      @click="replyTo = replyTo === comment.id ? null : comment.id"
+                      @click="showReplyForm(comment.id)"
                     >
                       <i class="bi bi-reply"></i> Trả lời
                     </button>
@@ -847,6 +1022,10 @@
                         x-model="replyForm.comment"
                         required
                       ></textarea>
+                      <div
+                        :id="'reply-recaptcha-' + comment.id"
+                        class="mb-3"
+                      ></div>
                       <div class="d-flex justify-content-end gap-2">
                         <button
                           type="button"
@@ -855,8 +1034,17 @@
                         >
                           Hủy
                         </button>
-                        <button type="submit" class="btn btn-sm btn-primary">
-                          Gửi
+                        <button
+                          type="submit"
+                          class="btn btn-sm btn-primary"
+                          :disabled="submitting"
+                        >
+                          <template x-if="!submitting">
+                            <span>Gửi</span>
+                          </template>
+                          <template x-if="submitting">
+                            <span>Đang gửi...</span>
+                          </template>
                         </button>
                       </div>
                     </form>
@@ -913,7 +1101,7 @@
                                 </button>
                                 <button
                                   class="btn btn-sm btn-outline-primary"
-                                  @click="replyTo = replyTo === reply.id ? null : reply.id"
+                                  @click="showReplyForm(reply.id)"
                                 >
                                   <i class="bi bi-reply"></i> Trả lời
                                 </button>
@@ -940,6 +1128,10 @@
                                     x-model="replyForm.comment"
                                     required
                                   ></textarea>
+                                  <div
+                                    :id="'reply-recaptcha-' + reply.id"
+                                    class="mb-3"
+                                  ></div>
                                   <div class="d-flex justify-content-end gap-2">
                                     <button
                                       type="button"
@@ -951,8 +1143,14 @@
                                     <button
                                       type="submit"
                                       class="btn btn-sm btn-primary"
+                                      :disabled="submitting"
                                     >
-                                      Gửi
+                                      <template x-if="!submitting">
+                                        <span>Gửi</span>
+                                      </template>
+                                      <template x-if="submitting">
+                                        <span>Đang gửi...</span>
+                                      </template>
                                     </button>
                                   </div>
                                 </form>
@@ -1015,7 +1213,7 @@
                                             </button>
                                             <button
                                               class="btn btn-sm btn-outline-primary"
-                                              @click="replyTo = replyTo === nestedReply.id ? null : nestedReply.id"
+                                              @click="showReplyForm(nestedReply.id)"
                                             >
                                               <i class="bi bi-reply"></i> Trả
                                               lời
@@ -1046,6 +1244,10 @@
                                                 required
                                               ></textarea>
                                               <div
+                                                :id="'reply-recaptcha-' + nestedReply.id"
+                                                class="mb-3"
+                                              ></div>
+                                              <div
                                                 class="d-flex justify-content-end gap-2"
                                               >
                                                 <button
@@ -1058,8 +1260,14 @@
                                                 <button
                                                   type="submit"
                                                   class="btn btn-sm btn-primary"
+                                                  :disabled="submitting"
                                                 >
-                                                  Gửi
+                                                  <template x-if="!submitting">
+                                                    <span>Gửi</span>
+                                                  </template>
+                                                  <template x-if="submitting">
+                                                    <span>Đang gửi...</span>
+                                                  </template>
                                                 </button>
                                               </div>
                                             </form>
