@@ -212,7 +212,7 @@ function createComment($mysqli)
     }
 
     // Verify reCAPTCHA
-    $recaptcha_secret = '6LdWZ14rAAAAACpkz8Dox7Nu8DonETe9xIDjfr85';
+    $recaptcha_secret = 'YOUR_RECAPTCHA_SECRET_KEY';
     $verify_url = 'https://www.google.com/recaptcha/api/siteverify';
     $data = [
         'secret' => $recaptcha_secret,
