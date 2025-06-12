@@ -9,7 +9,7 @@
     <script>
       document.addEventListener("alpine:init", () => {
         Alpine.data("app", () => ({
-          version: "v3.3.12",
+          version: "v3.4.13",
         }));
       });
       window.dataLayer = window.dataLayer || [];
@@ -77,13 +77,38 @@
     </script>
 
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="ads.css" />
 
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
   </head>
 
   <body>
+    <!-- Left Sidebar Ad -->
+    <div class="sidebar-ads left">
+      <div class="sidebar-ad">
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLScX-r0gL8csJlmuTgkl-0bSqfJu4TDgPFmIGiKHZfOlknFsyA/viewform"
+          target="_blank"
+        >
+          <img src="./ads/300x826.png" alt="Left Sidebar Ad" />
+        </a>
+      </div>
+    </div>
+
+    <!-- Right Sidebar Ad -->
+    <div class="sidebar-ads right">
+      <div class="sidebar-ad">
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLScX-r0gL8csJlmuTgkl-0bSqfJu4TDgPFmIGiKHZfOlknFsyA/viewform"
+          target="_blank"
+        >
+          <img src="./ads/300x826_2.png" alt="Right Sidebar Ad" />
+        </a>
+      </div>
+    </div>
+
     <main class="container">
-      <div class="main-container animate-fade-in">
+      <div class="main-container">
         <!-- Header Section -->
         <div class="header-section">
           <div class="header-content">
@@ -120,6 +145,16 @@
               Tra cứu nhanh chóng, chính xác và bảo mật
             </p>
           </div>
+        </div>
+
+        <!-- ads -->
+        <div class="wide-banner-ad">
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLScX-r0gL8csJlmuTgkl-0bSqfJu4TDgPFmIGiKHZfOlknFsyA/viewform"
+            target="_blank"
+          >
+            <img src="./ads/1000x220.png" alt="Advertisement Banner" />
+          </a>
         </div>
 
         <!-- Form Section -->
@@ -1480,6 +1515,20 @@
       ></noscript
     >
     <!-- End of OpenWidget code -->
+
+    <!-- Popup Banner -->
+    <div class="popup-overlay" id="popupOverlay"></div>
+    <div class="popup-banner" id="popupBanner">
+      <button class="close-btn" onclick="closePopup()">&times;</button>
+      <a
+        href="https://docs.google.com/forms/d/e/1FAIpQLScX-r0gL8csJlmuTgkl-0bSqfJu4TDgPFmIGiKHZfOlknFsyA/viewform"
+        class="banner-link"
+        target="_blank"
+      >
+        <h3>Quảng cáo</h3>
+        <img src="./ads/Popup-03.png" alt="Advertisement" />
+      </a>
+    </div>
 
     <script type="module" src="script.js"></script>
   </body>

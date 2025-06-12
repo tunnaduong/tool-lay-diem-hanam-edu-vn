@@ -184,6 +184,35 @@ document
   .querySelector("#form")
   .addEventListener("submit", (e) => e.preventDefault());
 
+// Popup Banner Logic
+let hasShownPopup = false;
+const popupBanner = document.getElementById("popupBanner");
+const popupOverlay = document.getElementById("popupOverlay");
+
+// Show popup when scrolling down
+window.addEventListener("scroll", () => {
+  if (!hasShownPopup && window.scrollY > 10) {
+    // Show after scrolling 10px
+    popupBanner.classList.add("show");
+    popupOverlay.classList.add("show");
+    hasShownPopup = true;
+  }
+});
+
+// Close popup function
+window.closePopup = function () {
+  popupBanner.classList.remove("show");
+  popupOverlay.classList.remove("show");
+};
+
+// Close popup when clicking on overlay
+popupOverlay.addEventListener("click", closePopup);
+
+// Prevent popup from closing when clicking inside the popup
+popupBanner.addEventListener("click", (e) => {
+  e.stopPropagation();
+});
+
 window.__ow = window.__ow || {};
 window.__ow.organizationId = "b0255469-c6ed-4b0a-854b-cc615e3ae00b";
 window.__ow.integration_name = "manual_settings";
